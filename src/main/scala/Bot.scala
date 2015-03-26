@@ -13,16 +13,23 @@ object Bot {
 }
 
 case class Bot(password: String, nick: String, username: String, servername: String, realname: String, plugins: Seq[Plugin] = Seq.empty[Plugin]) extends Actor {
+  import com.github.kxbmap.configs._
+  import net.node3.scalabot.config._
   import Tcp._
 
   val hostname = java.net.InetAddress.getLocalHost.getHostName
+  val conf = Conf.config
 
   def receive = {
-    case Ping(from) =>
-      sender ! Pong(from)
     case Connected if !password.isEmpty =>
       sender ! (Pass(password) + Nick(nick) + User(username, hostname, servername, realname))
     case Connected if password.isEmpty =>
       sender ! (Nick(nick) + User(username, hostname, servername, realname))
+    case Ping(from) =>
+      sender ! Pong(from)
+    case NotRegistered(_) =>
+      sender ! RegisterToNickServ(conf.get[String]("bot.nickservPass"), conf.get[String]("bot.email"))
+    case NickAlreadyRegistered(_) =>
+      sender ! IdentifyToNickServ(conf.get[String]("bot.nickservPass"))
   }
 }

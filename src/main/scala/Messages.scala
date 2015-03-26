@@ -53,4 +53,54 @@ object Messages {
       case _ => None
     }
   }
+
+  object Notice {
+    def apply(to: String, message: String) = Message(None, Command("NOTICE"), List(to, message))
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix(from, _, _)), Command("NOTICE"), List(to, message)) =>
+        Some((from, to, message))
+      case _ => None
+    }
+  }
+
+  object PrivMsg {
+    def apply(to: String, message: String) = Message(None, Command("PRIVMSG"), List(to, message))
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix(from, _, _)), Command("PRIVMSG"), List(to, message)) =>
+        Some((from, to, message))
+      case _ => None
+    }
+  }
+
+  object NotRegistered {
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"), List(to, message)) =>
+        if(message.contains("is not registered.")) Some((true))
+        else None
+      case _ => None
+    }
+  }
+
+  object NickAlreadyRegistered {
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"), List(to, message)) =>
+        if(message.contains("This nickname is registered.")) Some((true))
+        else None
+      case _ => None
+    }
+  }
+
+  object IdentifyToNickServ {
+    def apply(password: String) = PrivMsg("NickServ", s"IDENTIFY $password")
+  }
+
+  object RegisterToNickServ {
+    def apply(email: String, password: String) = PrivMsg("NickServ", s"REGISTER $password $email")
+  }
+
+  //object Registered {
+  //  def unapply(msg: Message) = msg match {
+  //    case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"
+  //  }
+  //}
 }
