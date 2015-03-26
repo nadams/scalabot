@@ -9,7 +9,8 @@ scalaVersion := "2.11.6"
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.3.8",
-  "org.parboiled" %% "parboiled" % "2.1.0"
+  "org.parboiled" %% "parboiled" % "2.1.0",
+  "com.typesafe" % "config" % "1.2.1"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")

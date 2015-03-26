@@ -1,15 +1,23 @@
 package net.node3.scalabot
 
+import scala.collection.JavaConversions._
+
 import java.net.InetSocketAddress
+
 import akka.actor.ActorSystem
+
+import net.node3.scalabot.config._
 
 object Main {
   def main(args: Array[String]) : Unit = {
     val system = ActorSystem("irc")
-    val server = "172.16.16.4"
-    val port = 6667
+    val networks = Conf.config.getConfigList("bot.networks").map(Network(_))
+    val server = networks(0).hostname
+    val port = networks(0).port
+    val nick = Conf.config.getString("bot.name")
+    val realname = Conf.config.getString("bot.realname")
 
-    val bot = system.actorOf(Bot.props("", "scalabot", "scalabot", "localhost", "scalabot"))
+    val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname))
     val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
   }
 }
