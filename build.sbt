@@ -10,7 +10,8 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.3.8",
   "org.parboiled" %% "parboiled" % "2.1.0",
-  "com.typesafe" % "config" % "1.2.1"
+  "com.typesafe" % "config" % "1.2.1",
+  "com.github.kxbmap" %% "configs" % "0.2.3"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")

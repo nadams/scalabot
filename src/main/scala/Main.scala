@@ -5,6 +5,7 @@ import scala.collection.JavaConversions._
 import java.net.InetSocketAddress
 
 import akka.actor.ActorSystem
+import com.github.kxbmap.configs._
 
 import net.node3.scalabot.config._
 
