@@ -5,6 +5,7 @@ import scala.collection.immutable._
 import akka.actor.{ Actor, Props }
 import akka.io.Tcp
 import akka.util.ByteString
+
 import Messages._
 
 object Bot {
@@ -28,8 +29,14 @@ case class Bot(password: String, nick: String, username: String, servername: Str
     case Ping(from) =>
       sender ! Pong(from)
     case NotRegistered(_) =>
-      sender ! RegisterToNickServ(conf.get[String]("bot.nickservPass"), conf.get[String]("bot.email"))
+      for(pass <- conf.opt[String]("bot.nickservPass"); email <- conf.opt[String]("bot.email")) {
+        sender ! RegisterToNickServ(email, pass)
+      }
     case NickAlreadyRegistered(_) =>
       sender ! IdentifyToNickServ(conf.get[String]("bot.nickservPass"))
+    //case Login(account, password) =>
+    //  println(s"$account, $password")
+    case JoinChannelCommand(channel) =>
+      sender ! JoinChannelCommand(channel)
   }
 }

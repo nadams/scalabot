@@ -1,5 +1,6 @@
 package net.node3.scalabot
 
+import net.node3.scalabot.config._
 import Tokens._
 
 object Messages {
@@ -75,7 +76,7 @@ object Messages {
   object NotRegistered {
     def unapply(msg: Message) = msg match {
       case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"), List(to, message)) =>
-        if(message.contains("is not registered.")) Some((true))
+        if(message.contains("Welcome to ")) Some((true))
         else None
       case _ => None
     }
@@ -96,6 +97,31 @@ object Messages {
 
   object RegisterToNickServ {
     def apply(email: String, password: String) = PrivMsg("NickServ", s"REGISTER $password $email")
+  }
+
+  object Login {
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix(from, _, _)), Command("PRIVMSG"), List(to, message)) =>
+        if(message.contains("identify")) {
+          val parts = message.split(" ")
+          if(parts.length == 3) Some((parts(1), parts(2)))
+          else None
+        } else None
+      case _ => None
+    }
+  }
+
+  object JoinChannelCommand {
+    def apply(channel: String) = Message(None, Command("JOIN"), List(channel))
+    def unapply(msg: Message) = msg match {
+      case Message(_, Command("PRIVMSG"), List(to, message)) =>
+        if(message.contains("join")) {
+          val parts = message.split(" ")
+          if(parts.length == 2) Some((parts(1)))
+          else None
+        } else None
+      case _ => None
+    }
   }
 
   //object Registered {
