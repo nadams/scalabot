@@ -117,8 +117,13 @@ object Messages {
       case Message(_, Command("PRIVMSG"), List(to, message)) =>
         if(message.contains("join")) {
           val parts = message.split(" ")
-          if(parts.length == 2) Some((parts(1)))
-          else None
+          if(parts.length == 2) {
+            val repo = new net.node3.scalabot.db.UserRepositoryImpl
+            repo.getUser(to) map { user =>
+              if(user == "silvertear") Some((parts(1)))
+              else None
+            } getOrElse None
+          } else None
         } else None
       case _ => None
     }
