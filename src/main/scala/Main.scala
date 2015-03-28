@@ -21,7 +21,7 @@ object Main {
     val nick = Conf.config.getString("bot.name")
     val realname = Conf.config.getString("bot.realname")
 
-    MigrationSystem.applyMigrations("")
+    MigrationSystem.applyMigrations(Conf.migrations)
 
     //val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname))
     //val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))

@@ -2,10 +2,13 @@ package net.node3.scalabot.db
 
 import java.sql._
 
-trait DataCore {
-  Class.forName("org.sqlite.JDBC");
+import net.node3.scalabot.config.Conf
 
-  val host = "jdbc:sqlite:db/db.sqlite"
+trait DataCore {
+  Class.forName("org.sqlite.JDBC")
+
+  val dbFile = Conf.dbFile
+  val host = s"jdbc:sqlite:$dbFile"
 
   implicit val connection: Connection = DriverManager.getConnection(host)
 }

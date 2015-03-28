@@ -12,7 +12,7 @@ object MigrationSystem extends DataCore {
   import com.roundeights.hasher.Implicits._
 
   def applyMigrations(migrationDirectory: String): Unit = {
-    val migrations = new File("db/migrations")
+    val migrations = new File(migrationDirectory)
 
     if(!migrationTableExists()) {
       createMigrationTable()
