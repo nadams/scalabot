@@ -14,13 +14,23 @@ trait DataCore {
 }
 
 object Migrations extends DataCore {
-  def applyMigrations(migrationDirectory: String) : Unit =
+  import java.io._
+  import scala.collection.JavaConversions._
+  import scala.io.Source
+
+  import com.github.nscala_time.time.Imports._
+  import com.roundeights.hasher.Implicits._
+
+  def applyMigrations(migrationDirectory: String) : Unit = {
+    val migrations = new File("db/migrations")
+
     if(!migrationTableExists()) {
       createMigrationTable()
-      runAllMigrations()
+      runAllMigrations(migrations)
     } else {
-      println(Migration("db/migrations/1.sql"))
+      runAllMigrations(migrations)
     }
+  }
 
   def migrationTableExists() : Boolean = SQL(
     """
@@ -34,13 +44,34 @@ object Migrations extends DataCore {
   def createMigrationTable() : Unit = SQL(
     """
       CREATE TABLE Migrations (
-        MigrationId INT PRIMARY KEY,
+        MigrationId INTEGER PRIMARY KEY AUTOINCREMENT,
         Filename TEXT NOT NULL UNIQUE,
         DateApplied TEXT NOT NULL,
+        SHA256 TEXT NOT NULL,
         Content TEXT NOT NULL
       )
     """
   ).execute
 
-  def runAllMigrations() : Unit = {}
+  def runAllMigrations(dir: File) : Unit =
+    dir.listFiles.filter(_.getName.endsWith(".sql")).foreach { migration =>
+      val m = Migration(migration.getPath)
+      try {
+        SQL(m.up).execute
+        val fileContent = Source.fromFile(migration).mkString
+        val fileSum = fileContent.sha256.hex
+        SQL"""
+          INSERT INTO Migrations
+          VALUES (
+            NULL,
+            ${migration.getName},
+            ${DateTime.now.toString},
+            $fileContent,
+            $fileSum
+          )
+        """.execute
+      } catch {
+        case e: Throwable  => println(e)
+      }
+    }
 }
