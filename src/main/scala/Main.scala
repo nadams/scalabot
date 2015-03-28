@@ -21,8 +21,8 @@ object Main {
 
     Migrations.applyMigrations("")
 
-    val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname))
-    val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
+    //val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname))
+    //val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
   }
 }
 

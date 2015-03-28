@@ -14,18 +14,20 @@ trait DataCore {
 }
 
 object Migrations extends DataCore {
-  def applyMigrations(migrationDirectory: String) : Unit = {
+  def applyMigrations(migrationDirectory: String) : Unit =
     if(!migrationTableExists()) {
       createMigrationTable()
+      runAllMigrations()
+    } else {
+      println(Migration("db/migrations/1.sql"))
     }
-  }
 
   def migrationTableExists() : Boolean = SQL(
     """
       SELECT name
       FROM sqlite_master
-      WHERE type='table'
-        AND name='migrations'
+      WHERE type = 'table'
+        AND name = 'Migrations'
     """
   ).as(scalar[String].singleOpt).isDefined
 
@@ -39,4 +41,6 @@ object Migrations extends DataCore {
       )
     """
   ).execute
+
+  def runAllMigrations() : Unit = {}
 }
