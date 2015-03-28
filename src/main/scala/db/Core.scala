@@ -17,8 +17,6 @@ object Migrations extends DataCore {
   import java.io._
   import scala.collection.JavaConversions._
   import scala.io.Source
-
-  import com.github.nscala_time.time.Imports._
   import com.roundeights.hasher.Implicits._
 
   def applyMigrations(migrationDirectory: String) : Unit = {
@@ -28,8 +26,26 @@ object Migrations extends DataCore {
       createMigrationTable()
       runAllMigrations(migrations)
     } else {
-      runAllMigrations(migrations)
+      updateMigrations(migrations)
     }
+  }
+
+  def updateMigrations(dir: File) : Unit = {
+    val records = SQL"""
+      SELECT
+        MigrationId,
+        Filename,
+        SHA256,
+        Content
+      FROM Migrations
+      ORDER BY Filename DESC
+    """.as(int("MigrationId") ~ str("Filename") ~ str("SHA256") ~ str("Content") map(flatten) *)
+    .map(MigrationRecord(_)).map { x => x.filename -> x } toMap
+
+    val files = filterToSql(dir).map { x => x.getName -> x } toMap
+    val unappliedMigrations = files.keySet.diff(records.keySet)
+
+    unappliedMigrations.toSeq.sortBy(x => x).foreach(x => applyMigration(files(x)))
   }
 
   def migrationTableExists() : Boolean = SQL(
@@ -46,32 +62,40 @@ object Migrations extends DataCore {
       CREATE TABLE Migrations (
         MigrationId INTEGER PRIMARY KEY AUTOINCREMENT,
         Filename TEXT NOT NULL UNIQUE,
-        DateApplied TEXT NOT NULL,
         SHA256 TEXT NOT NULL,
         Content TEXT NOT NULL
       )
     """
   ).execute
 
-  def runAllMigrations(dir: File) : Unit =
-    dir.listFiles.filter(_.getName.endsWith(".sql")).foreach { migration =>
-      val m = Migration(migration.getPath)
-      try {
-        SQL(m.up).execute
-        val fileContent = Source.fromFile(migration).mkString
-        val fileSum = fileContent.sha256.hex
-        SQL"""
-          INSERT INTO Migrations
-          VALUES (
-            NULL,
-            ${migration.getName},
-            ${DateTime.now.toString},
-            $fileContent,
-            $fileSum
-          )
-        """.execute
-      } catch {
-        case e: Throwable  => println(e)
-      }
+  def runAllMigrations(dir: File): Unit = filterToSql(dir).foreach(applyMigration(_))
+
+  def applyMigration(migration: File): Unit = {
+    val m = Migration(migration.getPath)
+    try {
+      SQL(m.up).execute
+      val fileContent = Source.fromFile(migration).mkString
+      val fileSum = fileContent.sha256.hex
+      SQL"""
+        INSERT INTO Migrations
+        VALUES (
+          NULL,
+          ${migration.getName},
+          $fileContent,
+          $fileSum
+        )
+      """.execute
+    } catch {
+      case e: Throwable  => println(e)
     }
+  }
+
+  def filterToSql(dir: File): Seq[File] = dir.listFiles.filter(_.getName.endsWith(".sql")).toSeq
+}
+
+case class MigrationRecord(migrationId: Int, filename: String, content: String, sha256: String)
+
+object MigrationRecord {
+  def apply(r :(Int, String, String, String)) : MigrationRecord =
+    MigrationRecord(r._1, r._2, r._3, r._4)
 }
