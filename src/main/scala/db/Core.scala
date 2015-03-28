@@ -2,9 +2,6 @@ package net.node3.scalabot.db
 
 import java.sql._
 
-import anorm._
-import anorm.SqlParser._
-
 trait DataCore {
   Class.forName("org.sqlite.JDBC");
 
@@ -13,89 +10,3 @@ trait DataCore {
   implicit val connection: Connection = DriverManager.getConnection(host)
 }
 
-object Migrations extends DataCore {
-  import java.io._
-  import scala.collection.JavaConversions._
-  import scala.io.Source
-  import com.roundeights.hasher.Implicits._
-
-  def applyMigrations(migrationDirectory: String) : Unit = {
-    val migrations = new File("db/migrations")
-
-    if(!migrationTableExists()) {
-      createMigrationTable()
-      runAllMigrations(migrations)
-    } else {
-      updateMigrations(migrations)
-    }
-  }
-
-  def updateMigrations(dir: File) : Unit = {
-    val records = SQL"""
-      SELECT
-        MigrationId,
-        Filename,
-        SHA256,
-        Content
-      FROM Migrations
-      ORDER BY Filename DESC
-    """.as(int("MigrationId") ~ str("Filename") ~ str("SHA256") ~ str("Content") map(flatten) *)
-    .map(MigrationRecord(_)).map { x => x.filename -> x } toMap
-
-    val files = filterToSql(dir).map { x => x.getName -> x } toMap
-    val unappliedMigrations = files.keySet.diff(records.keySet)
-
-    unappliedMigrations.toSeq.sortBy(x => x).foreach(x => applyMigration(files(x)))
-  }
-
-  def migrationTableExists() : Boolean = SQL(
-    """
-      SELECT name
-      FROM sqlite_master
-      WHERE type = 'table'
-        AND name = 'Migrations'
-    """
-  ).as(scalar[String].singleOpt).isDefined
-
-  def createMigrationTable() : Unit = SQL(
-    """
-      CREATE TABLE Migrations (
-        MigrationId INTEGER PRIMARY KEY AUTOINCREMENT,
-        Filename TEXT NOT NULL UNIQUE,
-        SHA256 TEXT NOT NULL,
-        Content TEXT NOT NULL
-      )
-    """
-  ).execute
-
-  def runAllMigrations(dir: File): Unit = filterToSql(dir).foreach(applyMigration(_))
-
-  def applyMigration(migration: File): Unit = {
-    val m = Migration(migration.getPath)
-    try {
-      SQL(m.up).execute
-      val fileContent = Source.fromFile(migration).mkString
-      val fileSum = fileContent.sha256.hex
-      SQL"""
-        INSERT INTO Migrations
-        VALUES (
-          NULL,
-          ${migration.getName},
-          $fileContent,
-          $fileSum
-        )
-      """.execute
-    } catch {
-      case e: Throwable  => println(e)
-    }
-  }
-
-  def filterToSql(dir: File): Seq[File] = dir.listFiles.filter(_.getName.endsWith(".sql")).toSeq
-}
-
-case class MigrationRecord(migrationId: Int, filename: String, content: String, sha256: String)
-
-object MigrationRecord {
-  def apply(r :(Int, String, String, String)) : MigrationRecord =
-    MigrationRecord(r._1, r._2, r._3, r._4)
-}

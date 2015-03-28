@@ -9,7 +9,7 @@ import com.github.kxbmap.configs._
 import org.joda.time.DateTimeZone
 
 import net.node3.scalabot.config._
-import net.node3.scalabot.db._
+import net.node3.scalabot.db.migrate._
 
 object Main {
   def main(args: Array[String]) : Unit = {
@@ -21,7 +21,7 @@ object Main {
     val nick = Conf.config.getString("bot.name")
     val realname = Conf.config.getString("bot.realname")
 
-    Migrations.applyMigrations("")
+    MigrationSystem.applyMigrations("")
 
     //val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname))
     //val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
