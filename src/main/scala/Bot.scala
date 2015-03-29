@@ -34,9 +34,10 @@ case class Bot(password: String, nick: String, username: String, servername: Str
       }
     case NickAlreadyRegistered(_) =>
       sender ! IdentifyToNickServ(conf.get[String]("bot.nickservPass"))
-    //case Login(account, password) =>
-    //  println(s"$account, $password")
     case JoinChannelCommand(channel) =>
       sender ! JoinChannelCommand(channel)
+    case BotCommand(from, to, message) =>
+      if(to.startsWith("#")) sender ! BotCommand(to, BotCommandHandler.handleMessage(from, to, message))
+      else sender ! BotCommand(from, BotCommandHandler.handleMessage(from, to, message))
   }
 }

@@ -125,6 +125,16 @@ object Messages {
     }
   }
 
+  object BotCommand {
+    def apply(to: String, message: String) = Message(None, Command("PRIVMSG"), List(to, message))
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix(from, _, _)), Command("PRIVMSG"), List(to, message)) =>
+        if(BotCommandHandler.handlesMessage(from, to, message)) Some((from, to, message))
+        else None
+      case _ => None
+    }
+  }
+
   //object Registered {
   //  def unapply(msg: Message) = msg match {
   //    case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"
