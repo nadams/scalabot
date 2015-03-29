@@ -118,11 +118,7 @@ object Messages {
         if(message.contains("join")) {
           val parts = message.split(" ")
           if(parts.length == 2) {
-            val repo = new net.node3.scalabot.db.UserRepositoryImpl
-            repo.getUser(to) map { user =>
-              if(user == "silvertear") Some((parts(1)))
-              else None
-            } getOrElse None
+            Some((parts(1)))
           } else None
         } else None
       case _ => None
