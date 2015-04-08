@@ -1,5 +1,7 @@
 package net.node3.scalabot.data
 
+import java.util.Date
+
 import com.github.nscala_time.time.Imports._
 import anorm._
 import anorm.SqlParser._
@@ -11,14 +13,14 @@ trait UserRepository {
   def hasUsers() : Boolean
   def getUser(name: String) : Option[User]
   def getUserById(id: Int) : Option[User]
-  def insertUser(name: String, password: String): Option[User]
+  def insertUser(name: String, password: String, hostname: String): Option[User]
 }
 
 class UserRepositoryImpl extends UserRepository with DataCore {
-  def insertUser(name: String, password: String): Option[User] = {
+  def insertUser(name: String, password: String, hostname: String): Option[User] = {
     val id = SQL"""
-      INSERT INTO User(Name, Password, DateCreated)
-      VALUES ($name, $password, ${DateTime.now})
+      INSERT INTO User(Name, Password, DateCreated, Hostname, LastIdentified)
+      VALUES ($name, $password, ${DateTime.now}, $hostname, ${new DateTime(new Date(0), DateTimeZone.UTC)})
     """.executeInsert(scalar[Int] single)
 
     if(id > 0) {
@@ -29,10 +31,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def getUserById(id: Int): Option[User] =
     SQL"""
       SELECT
-        UserId,
-        Name,
-        Password,
-        DateCreated
+        ${User.projection}
       FROM User
       WHERE UserId = $id
     """.as(User.singleRowParser singleOpt).map(User(_))
@@ -40,12 +39,9 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def getUser(name: String): Option[User] =
     SQL"""
       SELECT
-        UserId,
-        Name,
-        Password,
-        DateCreated
+        ${User.projection}
       FROM User
-      WHERE name = $name
+      WHERE Name = $name
     """.as(User.singleRowParser singleOpt).map(User(_))
 
   def hasUsers(): Boolean =
@@ -54,11 +50,22 @@ class UserRepositoryImpl extends UserRepository with DataCore {
     """.as(scalar[Int].single) > 0
 }
 
-case class User(userId: Int, name: String, password: String, dateCreated: DateTime)
+case class User(userId: Int, name: String, password: String, dateCreated: DateTime, hostname: String, lastIdentified: DateTime)
 
 object User {
-  lazy val singleRowParser = int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") map(flatten)
+  lazy val singleRowParser =
+    int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") ~ str("Hostname") ~ datetime("LastIdentified") map(flatten)
+
   lazy val multiRowParser = singleRowParser *
 
-  def apply(x: (Int, String, String, DateTime)): User = User(x._1, x._2, x._3, x._4)
+  lazy val projection = """
+    UserId,
+    Name,
+    Password,
+    DateCreated,
+    Hostname,
+    LastIdentified
+  """
+
+  def apply(x: (Int, String, String, DateTime, String, DateTime)): User = User(x._1, x._2, x._3, x._4, x._5, x._6)
 }

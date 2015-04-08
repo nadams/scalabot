@@ -11,7 +11,7 @@ class AccountPlugin extends Plugin {
       message.split(" ") match {
         case Array(_, name, password, _*) =>
           if(userRepository.getUser(name).isEmpty) {
-            userRepository.insertUser(name, password).map { u =>
+            userRepository.insertUser(name, password, from).map { u =>
               Some(s"${u.name} was registered")
             }.getOrElse(Some(s"$name could not be registered"))
           } else Some(s"$name could not be registered")
