@@ -31,7 +31,12 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def getUserById(id: Int): Option[User] =
     SQL"""
       SELECT
-        ${User.projection}
+        UserId,
+        Name,
+        Password,
+        DateCreated,
+        Hostname,
+        LastIdentified
       FROM User
       WHERE UserId = $id
     """.as(User.singleRowParser singleOpt).map(User(_))
@@ -39,7 +44,12 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def getUser(name: String): Option[User] =
     SQL"""
       SELECT
-        ${User.projection}
+        UserId,
+        Name,
+        Password,
+        DateCreated,
+        Hostname,
+        LastIdentified
       FROM User
       WHERE Name = $name
     """.as(User.singleRowParser singleOpt).map(User(_))
@@ -57,15 +67,6 @@ object User {
     int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") ~ str("Hostname") ~ datetime("LastIdentified") map(flatten)
 
   lazy val multiRowParser = singleRowParser *
-
-  lazy val projection = """
-    UserId,
-    Name,
-    Password,
-    DateCreated,
-    Hostname,
-    LastIdentified
-  """
 
   def apply(x: (Int, String, String, DateTime, String, DateTime)): User = User(x._1, x._2, x._3, x._4, x._5, x._6)
 }

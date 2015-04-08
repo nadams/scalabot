@@ -37,11 +37,11 @@ case class Bot(password: String, nick: String, username: String, servername: Str
       sender ! IdentifyToNickServ(conf.get[String]("bot.nickservPass"))
     case JoinChannelCommand(channel) =>
       sender ! JoinChannelCommand(channel)
-    case BotCommand(from, to, message) =>
-      if(to.startsWith("#")) botCommandHandler.handleMessage(to, from, message).foreach { response =>
+    case BotCommand(source, to, message) =>
+      if(to.startsWith("#")) botCommandHandler.handleMessage(MessageSource(to, None, None), source.source, message).foreach { response =>
         sender ! BotCommand(to, response)
-      } else botCommandHandler.handleMessage(from, to, message).foreach { response =>
-        sender ! BotCommand(from, response)
+      } else botCommandHandler.handleMessage(source, to, message).foreach { response =>
+        sender ! BotCommand(source.source, response)
       }
   }
 }

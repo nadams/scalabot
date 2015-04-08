@@ -128,8 +128,9 @@ object Messages {
   object BotCommand {
     def apply(to: String, message: String) = Message(None, Command("PRIVMSG"), List(to, message))
     def unapply(msg: Message)(implicit handler: BotCommandHandler) = msg match {
-      case Message(Some(Prefix(from, _, _)), Command("PRIVMSG"), List(to, message)) =>
-        if(handler.handlesMessage(from, to, message)) Some((from, to, message))
+      case Message(Some(Prefix(source, name, hostname)), Command("PRIVMSG"), List(to, message)) =>
+        val s = MessageSource(source, name, hostname)
+        if(handler.handlesMessage(s, to, message)) Some((s, to, message))
         else None
       case _ => None
     }
