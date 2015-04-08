@@ -10,10 +10,12 @@ class AccountPlugin extends Plugin {
     if(message.toLowerCase().startsWith("register")) {
       message.split(" ") match {
         case Array(_, name, password, _*) =>
-          userRepository.insertUser(name, password).map { u =>
-            Some(s"${u.name} was registered")
-          }.getOrElse(None)
-        case _ => None
+          if(userRepository.getUser(name).isEmpty) {
+            userRepository.insertUser(name, password).map { u =>
+              Some(s"${u.name} was registered")
+            }.getOrElse(Some(s"$name could not be registered"))
+          } else Some(s"$name could not be registered")
+        case _ => Some("Invalid format for the register command. the format is /msg botname register <name> <password>")
       }
     } else {
       None
