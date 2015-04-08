@@ -41,9 +41,7 @@ class Handler(remote: InetSocketAddress, connection: ActorRef, responder: ActorR
       }
   }
 
-  override def preStart() = {
-    responder ! Connected
-  }
+  override def preStart() = responder ! Connected
 
   def receive = {
     case response: Response =>
