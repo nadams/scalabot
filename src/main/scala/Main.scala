@@ -33,9 +33,9 @@ object Main {
   def loadPlugins() : Seq[Plugin] = {
     Conf.plugins.flatMap { name =>
       try {
-        Some(Class.forName(s"net.node3.scalabot.plugins.${name}Plugin").newInstance.asInstanceOf[Plugin])
+        Some(Class.forName(name).newInstance.asInstanceOf[Plugin])
       } catch {
-        case e: ClassNotFoundException => {
+        case _: Throwable => {
           println(s"Could not load plugin: $name")
           None
         }
