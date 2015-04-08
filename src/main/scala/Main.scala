@@ -22,13 +22,25 @@ object Main {
     val port = networks(0).port
     val nick = Conf.config.getString("bot.name")
     val realname = Conf.config.getString("bot.realname")
+    val plugins = loadPlugins()
 
     MigrationSystem.applyMigrations(Conf.migrations)
 
-    val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname, loadPlugins()))
+    val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname, plugins))
     val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
   }
 
-  def loadPlugins() = Seq[Plugin](new AccountPlugin())
+  def loadPlugins() : Seq[Plugin] = {
+    Conf.plugins.flatMap { name =>
+      try {
+        Some(Class.forName(s"net.node3.scalabot.plugins.${name}Plugin").newInstance.asInstanceOf[Plugin])
+      } catch {
+        case e: ClassNotFoundException => {
+          println(s"Could not load plugin: $name")
+          None
+        }
+      }
+    }.to[Seq]
+  }
 }
 

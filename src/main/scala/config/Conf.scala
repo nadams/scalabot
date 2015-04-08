@@ -7,5 +7,6 @@ object Conf {
   val nick = config.getString("bot.name")
   val dbFile = config.getString("bot.db")
   val migrations = config.getString("bot.migrations")
+  val plugins = config.getStringList("bot.plugins")
 }
 
