@@ -1,5 +1,5 @@
 package net.node3.scalabot
 
 trait Plugin {
-  def apply(value: String) : Option[String]
+  def apply(from: String, to: String, message: String) : Option[String]
 }

@@ -134,10 +134,4 @@ object Messages {
       case _ => None
     }
   }
-
-  //object Registered {
-  //  def unapply(msg: Message) = msg match {
-  //    case Message(Some(Prefix("NickServ", _, _)), Command("NOTICE"
-  //  }
-  //}
 }
