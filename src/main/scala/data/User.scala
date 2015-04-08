@@ -14,9 +14,23 @@ trait UserRepository {
   def getUser(name: String) : Option[User]
   def getUserById(id: Int) : Option[User]
   def insertUser(name: String, password: String, hostname: String): Option[User]
+  def updateUser(id: Int, user: User): Option[User]
 }
 
 class UserRepositoryImpl extends UserRepository with DataCore {
+  def updateUser(id: Int, user: User): Option[User] =
+    if(SQL"""
+      UPDATE User
+      SET
+        Name = ${user.name},
+        Password = ${user.password},
+        DateCreated = ${user.dateCreated},
+        Hostname = ${user.hostname},
+        LastIdentified = ${user.lastIdentified}
+      WHERE UserId = $id
+      """.executeUpdate > 0) Some(user)
+    else None
+
   def insertUser(name: String, password: String, hostname: String): Option[User] = {
     val id = SQL"""
       INSERT INTO User(Name, Password, DateCreated, Hostname, LastIdentified)
@@ -60,7 +74,9 @@ class UserRepositoryImpl extends UserRepository with DataCore {
     """.as(scalar[Int].single) > 0
 }
 
-case class User(userId: Int, name: String, password: String, dateCreated: DateTime, hostname: String, lastIdentified: DateTime)
+case class User(userId: Int, name: String, password: String, dateCreated: DateTime, hostname: String, lastIdentified: DateTime) {
+  lazy val address = s"$name@$hostname"
+}
 
 object User {
   lazy val singleRowParser =
