@@ -4,6 +4,9 @@ import net.node3.scalabot.{ Plugin, MessageSource }
 import net.node3.scalabot.data._
 
 class AccountPlugin extends Plugin {
+  import com.github.t3hnar.bcrypt._
+
+  val rounds = 12
   val userRepository: UserRepository = new UserRepositoryImpl
 
   def apply(from: MessageSource, to: String, message: String) : Option[String] =
@@ -12,7 +15,7 @@ class AccountPlugin extends Plugin {
         message.split(" ") match {
           case Array(_, name, password, _*) =>
             if(userRepository.getUser(name).isEmpty) {
-              userRepository.insertUser(name, password, s"$ircName@$hostname").map { u =>
+              userRepository.insertUser(name, password.bcrypt(rounds), s"$ircName@$hostname").map { u =>
                 s"${u.name} was registered"
               } getOrElse(s"$name could not be registered")
             } else s"$name could not be registered"

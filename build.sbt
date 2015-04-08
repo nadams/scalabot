@@ -15,7 +15,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "anorm" % "2.4.0-M2",
   "org.xerial" % "sqlite-jdbc" % "3.7.2",
   "com.github.nscala-time" %% "nscala-time" % "1.8.0",
-  "com.roundeights" %% "hasher" % "1.0.0"
+  "com.roundeights" %% "hasher" % "1.0.0",
+  "com.github.t3hnar" %% "scala-bcrypt" % "2.4"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
