@@ -47,19 +47,19 @@ class Handler(remote: InetSocketAddress, connection: ActorRef, responder: ActorR
 
   def receive = {
     case response: Response =>
-      response.byteString.utf8String.split(Chars.rn).foreach(x => println(s"Response: $x"))
+      response.byteString.utf8String.split(Chars.rn).filterNot(x => x.startsWith("PONG")).foreach(x => println(s"Response: $x"))
       connection ! Write(out(response.byteString))
     case Received(data) =>
       val input = data.decodeString(charset)
       val lines = input.split(Chars.rn)
-      lines.foreach { line =>
+      lines.filterNot(x => x.startsWith("PING")).foreach { line =>
         println(s"Received: $line")
       }
 
       handleInput(0)
 
       @tailrec
-      def handleInput(index: Int) : Unit = {
+      def handleInput(index: Int) : Unit =
         if(index < lines.length - 1) {
           respondToInput(lines(index))
           handleInput(index + 1)
@@ -69,6 +69,5 @@ class Handler(remote: InetSocketAddress, connection: ActorRef, responder: ActorR
             case _ => buffer = Some(lines(index))
           }
         }
-      }
   }
 }
