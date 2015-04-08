@@ -8,5 +8,5 @@ class AccountPlugin extends Plugin with DataCore {
     Some("hello from account plugin")
   }
 
-  def handlesMessage(from: String, to: String, message: String) = true
+  def handlesMessage(from: String, to: String, message: String) = false
 }
