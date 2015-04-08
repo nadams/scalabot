@@ -1,6 +1,6 @@
 package net.node3.scalabot
 
-object BotCommandHandler {
-  def handleMessage(from: String, to: String, message: String) : String = "hello"
-  def handlesMessage(from: String, to: String, message: String) : Boolean = true
+class BotCommandHandler(val plugins: Seq[Plugin]) {
+  def handleMessage(from: String, to: String, message: String): Seq[String] = plugins.flatMap(_(message))
+  def handlesMessage(from: String, to: String, message: String): Boolean = true
 }

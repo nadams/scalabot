@@ -20,6 +20,7 @@ case class Bot(password: String, nick: String, username: String, servername: Str
 
   val hostname = java.net.InetAddress.getLocalHost.getHostName
   val conf = Conf.config
+  implicit val botCommandHandler = new BotCommandHandler(plugins)
 
   def receive = {
     case Connected if !password.isEmpty =>
@@ -37,7 +38,10 @@ case class Bot(password: String, nick: String, username: String, servername: Str
     case JoinChannelCommand(channel) =>
       sender ! JoinChannelCommand(channel)
     case BotCommand(from, to, message) =>
-      if(to.startsWith("#")) sender ! BotCommand(to, BotCommandHandler.handleMessage(from, to, message))
-      else sender ! BotCommand(from, BotCommandHandler.handleMessage(from, to, message))
+      if(to.startsWith("#")) botCommandHandler.handleMessage(to, from, message).foreach { response =>
+        sender ! BotCommand(to, response)
+      } else botCommandHandler.handleMessage(from, to, message).foreach { response =>
+        sender ! BotCommand(from, response)
+      }
   }
 }
