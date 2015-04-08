@@ -7,23 +7,18 @@ import org.joda.time._
 import org.joda.time.format._
 
 object AnormExtensions {
-  val dateFormatGeneration: DateTimeFormatter = DateTimeFormat.forPattern("yyyyMMddHHmmssSS").withZoneUTC
-  val utc = DateTimeZone.UTC
-
   implicit def rowToDateTime: Column[DateTime] = Column.nonNull1 { (value, meta) =>
     val MetaDataItem(qualified, nullable, clazz) = meta
 
     value match {
-      case ts: java.sql.Timestamp => Right(new DateTime(ts.getTime, utc))
-      case d: java.sql.Date => Right(new DateTime(d.getTime, utc))
-      case str: java.lang.String => Right(dateFormatGeneration.parseDateTime(str))
+      case str: java.lang.String => Right(ISODateTimeFormat.dateTime().parseDateTime(str))
       case _ => Left(TypeDoesNotMatch("Cannot convert " + value + ":" + value.asInstanceOf[AnyRef].getClass) )
     }
   }
 
   implicit val dateTimeToStatement = new ToStatement[DateTime] {
     def set(s: java.sql.PreparedStatement, index: Int, aValue: DateTime): Unit = {
-      s.setTimestamp(index, new Timestamp(aValue.withMillisOfSecond(0).getMillis()))
+      s.setString(index, aValue.toString)
     }
   }
 

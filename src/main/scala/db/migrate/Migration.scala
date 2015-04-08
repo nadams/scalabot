@@ -30,7 +30,7 @@ case class Migration(up: String, down: String)
 case class MigrationRecord(migrationId: Int, filename: String, content: String, sha256: String)
 
 object MigrationRecord {
-  def apply(r :(Int, String, String, String)) : MigrationRecord =
+  def apply(r :(Int, String, String, String)): MigrationRecord =
     MigrationRecord(r._1, r._2, r._3, r._4)
 }
 

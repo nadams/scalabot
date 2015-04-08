@@ -16,6 +16,16 @@ import net.node3.scalabot.plugins._
 object Main {
   def main(args: Array[String]) : Unit = {
     DateTimeZone.setDefault(DateTimeZone.UTC)
+
+    try {
+      MigrationSystem.applyMigrations(Conf.migrations)
+    } catch {
+      case e: Throwable =>
+        println("Could not apply migrations, shutting down")
+        println(e)
+        System.exit(1)
+    }
+
     val system = ActorSystem("irc")
     val networks = Conf.config.getConfigList("bot.networks").map(Network(_))
     val server = networks(0).hostname
@@ -23,8 +33,6 @@ object Main {
     val nick = Conf.config.getString("bot.name")
     val realname = Conf.config.getString("bot.realname")
     val plugins = loadPlugins()
-
-    MigrationSystem.applyMigrations(Conf.migrations)
 
     val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname, plugins))
     val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))

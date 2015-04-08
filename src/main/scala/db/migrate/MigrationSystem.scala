@@ -64,22 +64,19 @@ object MigrationSystem extends DataCore {
 
   def applyMigration(migration: File): Unit = {
     val m = Migration(migration.getPath)
-    try {
-      SQL(m.up).execute
-      val fileContent = Source.fromFile(migration).mkString
-      val fileSum = fileContent.sha256.hex
-      SQL"""
-        INSERT INTO Migrations
-        VALUES (
-          NULL,
-          ${migration.getName},
-          $fileContent,
-          $fileSum
-        )
-      """.execute
-    } catch {
-      case e: Throwable  => println(e)
-    }
+    m.up.split("(?<!;);(?!;)").map(_.trim.replace(";;", ";")).filter(_ != "").foreach(SQL(_).execute())
+
+    val fileContent = Source.fromFile(migration).mkString
+    val fileSum = fileContent.sha256.hex
+    SQL"""
+      INSERT INTO Migrations
+      VALUES (
+        NULL,
+        ${migration.getName},
+        $fileContent,
+        $fileSum
+      )
+    """.execute
   }
 
   def filterToSql(dir: File): Seq[File] = dir.listFiles.filter(_.getName.endsWith(".sql")).toSeq
