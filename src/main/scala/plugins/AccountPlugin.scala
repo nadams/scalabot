@@ -51,9 +51,10 @@ class AccountPlugin extends Plugin {
       }
 }
 
-type Permissions = Int
 
 object PermissionFlags {
+  type Permissions = Int
+
   val User = 1 << 0
   val Admin = 1 << 1
   val Owner = 1 << 2
