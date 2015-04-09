@@ -50,3 +50,20 @@ class AccountPlugin extends Plugin {
         case _ => "Invalid format for the identify command. The format is /msg botname identify <name> <password>"
       }
 }
+
+type Permissions = Int
+
+object PermissionFlags {
+  val User = 1 << 0
+  val Admin = 1 << 1
+  val Owner = 1 << 2
+
+  private val is: (Permissions, Permissions) => Boolean = (x, y) => (x & y) == x
+
+  def isUser(flags: Permissions) = (flags & User) == User
+  def isAdmin(flags: Permissions) = (flags & Admin) == Admin
+  def isOwner(flags: Permissions) = (flags & Owner) == Owner
+  def isAll(flag: Permissions, flags: Seq[Permissions]) = flags.forall(f => is(f, flag))
+  def isAny(flag: Permissions, flags: Seq[Permissions]) = flags.exists(f => is(f, flag))
+}
+
