@@ -5,7 +5,7 @@ import scala.collection.immutable.Map
 import net.node3.scalabot.{ Plugin, PluginHelper, MessageSource }
 import net.node3.scalabot.data._
 
-class AccountPlugin extends PluginHelper {
+class AccountPlugin extends Plugin with PluginHelper {
   import com.github.t3hnar.bcrypt._
   import org.joda.time.DateTime
 
@@ -15,12 +15,6 @@ class AccountPlugin extends PluginHelper {
     "register" -> handleRegister,
     "identify" -> handleIdentify
   )
-
-  def apply(from: MessageSource, to: String, message: String): Option[String] =
-    message.split(" ") match {
-      case Array(command, _*) => messages.get(command).map(_(from, to, message)).getOrElse(None)
-      case _ => None
-    }
 
   def handleRegister(from: MessageSource, to: String, message: String): Option[String] =
     for(ircName <- from.name; hostname <- from.hostname) yield
@@ -47,7 +41,6 @@ class AccountPlugin extends PluginHelper {
         case _ => "Invalid format for the identify command. The format is /msg botname identify <name> <password>"
       }
 }
-
 
 object PermissionFlags {
   type Permissions = Int
