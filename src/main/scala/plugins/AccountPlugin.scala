@@ -2,16 +2,16 @@ package net.node3.scalabot.plugins
 
 import scala.collection.immutable.Map
 
-import net.node3.scalabot.{ Plugin, MessageSource }
+import net.node3.scalabot.{ Plugin, PluginHelper, MessageSource }
 import net.node3.scalabot.data._
 
-class AccountPlugin extends Plugin {
+class AccountPlugin extends PluginHelper {
   import com.github.t3hnar.bcrypt._
   import org.joda.time.DateTime
 
   val rounds = 12
   val userRepository: UserRepository = new UserRepositoryImpl
-  val messages = Map[String, (MessageSource, String, String) => Option[String]](
+  override val messages = Map[String, MessageHandler](
     "register" -> handleRegister,
     "identify" -> handleIdentify
   )
@@ -21,9 +21,6 @@ class AccountPlugin extends Plugin {
       case Array(command, _*) => messages.get(command).map(_(from, to, message)).getOrElse(None)
       case _ => None
     }
-
-  def handlesMessage(from: MessageSource, to: String, message: String) =
-    messages.keySet.exists(message.toLowerCase.startsWith(_))
 
   def handleRegister(from: MessageSource, to: String, message: String): Option[String] =
     for(ircName <- from.name; hostname <- from.hostname) yield
