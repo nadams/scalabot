@@ -38,9 +38,9 @@ case class Bot(password: String, nick: String, username: String, servername: Str
     case JoinChannelCommand(channel) =>
       sender ! JoinChannelCommand(channel)
     case BotCommand(source, to, message) =>
-      if(to.startsWith("#")) botCommandHandler.handleMessage(MessageSource(to, None, None), source.source, message).foreach { response =>
+      if(to.startsWith("#")) botCommandHandler.handleMessage(MessageSource(to, None, None), source.source, message, self).foreach { response =>
         sender ! BotCommand(to, response)
-      } else botCommandHandler.handleMessage(source, to, message).foreach { response =>
+      } else botCommandHandler.handleMessage(source, to, message, self).foreach { response =>
         sender ! BotCommand(source.source, response)
       }
   }

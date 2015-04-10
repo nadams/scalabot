@@ -2,6 +2,8 @@ package net.node3.scalabot.plugins
 
 import scala.collection.immutable.Map
 
+import akka.actor.ActorRef
+
 import net.node3.scalabot.{ Plugin, PluginHelper, MessageSource }
 import net.node3.scalabot.data._
 
@@ -16,7 +18,7 @@ class AccountPlugin extends Plugin with PluginHelper {
     "identify" -> handleIdentify
   )
 
-  def handleRegister(from: MessageSource, to: String, message: String): Option[String] =
+  def handleRegister(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
     for(ircName <- from.name; hostname <- from.hostname) yield
       message.split(" ") match {
         case Array(_, name, password, _*) =>
@@ -28,7 +30,7 @@ class AccountPlugin extends Plugin with PluginHelper {
         case _ => "Invalid format for the register command. The format is /msg botname register <name> <password>"
       }
 
-  def handleIdentify(from: MessageSource, to: String, message: String): Option[String] =
+  def handleIdentify(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
     for(ircName <- from.name; hostname <- from.hostname) yield
       message.split(" ") match {
         case Array(_, name, password, _*) =>
