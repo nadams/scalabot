@@ -22,7 +22,7 @@ class RawCommandPlugin extends Plugin with PluginHelper {
           userRepository.getUser(from.source).map { user =>
             for(name <- from.name; hostname <- from.hostname) yield
               if(user.hostname == s"$name@$hostname" && PermissionFlags.isOwner(user.permissions)) {
-                bot ! Message(None, Command(command), List())
+                bot ! Message(None, Command(command), List.empty[String])
                 ""
               } else ""
           }.getOrElse(None)
