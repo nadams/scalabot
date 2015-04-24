@@ -113,16 +113,6 @@ object Messages {
 
   object JoinChannelCommand {
     def apply(channel: String) = Message(None, Command("JOIN"), List(channel))
-    def unapply(msg: Message) = msg match {
-      case Message(_, Command("PRIVMSG"), List(to, message)) =>
-        if(message.contains("join")) {
-          val parts = message.split(" ")
-          if(parts.length == 2) {
-            Some((parts(1)))
-          } else None
-        } else None
-      case _ => None
-    }
   }
 
   object BotCommand {
@@ -135,4 +125,6 @@ object Messages {
       case _ => None
     }
   }
+
+  case class PluginMessage(result: Message)
 }

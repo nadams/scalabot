@@ -35,13 +35,13 @@ case class Bot(password: String, nick: String, username: String, servername: Str
       }
     case NickAlreadyRegistered(_) =>
       sender ! IdentifyToNickServ(conf.get[String]("bot.nickservPass"))
-    case JoinChannelCommand(channel) =>
-      sender ! JoinChannelCommand(channel)
     case BotCommand(source, to, message) =>
-      if(to.startsWith("#")) botCommandHandler.handleMessage(MessageSource(to, None, None), source.source, message, self).foreach { response =>
+      if(to.startsWith("#")) botCommandHandler.handleMessage(MessageSource(to, None, None), source.source, message, sender).foreach { response =>
         sender ! BotCommand(to, response)
-      } else botCommandHandler.handleMessage(source, to, message, self).foreach { response =>
+      } else botCommandHandler.handleMessage(source, to, message, sender).foreach { response =>
         sender ! BotCommand(source.source, response)
       }
+    case PluginMessage(message) =>
+      sender ! message
   }
 }

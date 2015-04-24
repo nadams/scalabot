@@ -26,6 +26,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
         Password = ${user.password},
         DateCreated = ${user.dateCreated},
         Hostname = ${user.hostname},
+        Permissions = ${user.permissions},
         LastIdentified = ${user.lastIdentified}
       WHERE UserId = $id
       """.executeUpdate > 0) Some(user)
@@ -34,7 +35,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def insertUser(name: String, password: String, hostname: String): Option[User] = {
     val id = SQL"""
       INSERT INTO User(Name, Password, DateCreated, Hostname, LastIdentified)
-      VALUES ($name, $password, ${DateTime.now}, $hostname, ${new DateTime(new Date(0), DateTimeZone.UTC)})
+      VALUES ($name, $password, ${DateTime.now}, $hostname, 0, ${new DateTime(new Date(0), DateTimeZone.UTC)})
     """.executeInsert(scalar[Int] single)
 
     if(id > 0) {
@@ -50,6 +51,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
         Password,
         DateCreated,
         Hostname,
+        Permissions,
         LastIdentified
       FROM User
       WHERE UserId = $id
@@ -63,6 +65,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
         Password,
         DateCreated,
         Hostname,
+        Permissions,
         LastIdentified
       FROM User
       WHERE Name = $name
@@ -74,15 +77,13 @@ class UserRepositoryImpl extends UserRepository with DataCore {
     """.as(scalar[Int].single) > 0
 }
 
-case class User(userId: Int, name: String, password: String, dateCreated: DateTime, hostname: String, lastIdentified: DateTime) {
-  lazy val address = s"$name@$hostname"
-}
+case class User(userId: Int, name: String, password: String, dateCreated: DateTime, hostname: String, permissions: Permissions, lastIdentified: DateTime)
 
 object User {
   lazy val singleRowParser =
-    int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") ~ str("Hostname") ~ datetime("LastIdentified") map(flatten)
+    int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") ~ str("Hostname") ~ int("Permissions") ~ datetime("LastIdentified") map(flatten)
 
   lazy val multiRowParser = singleRowParser *
 
-  def apply(x: (Int, String, String, DateTime, String, DateTime)): User = User(x._1, x._2, x._3, x._4, x._5, x._6)
+  def apply(x: (Int, String, String, DateTime, String, Permissions, DateTime)): User = User(x._1, x._2, x._3, x._4, x._5, x._6, x._7)
 }

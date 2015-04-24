@@ -44,19 +44,4 @@ class AccountPlugin extends Plugin with PluginHelper {
       }
 }
 
-object PermissionFlags {
-  type Permissions = Int
-
-  val User = 1 << 0
-  val Admin = 1 << 1
-  val Owner = 1 << 2
-
-  private val is: (Permissions, Permissions) => Boolean = (x, y) => (x & y) == x
-
-  def isUser(flags: Permissions) = (flags & User) == User
-  def isAdmin(flags: Permissions) = (flags & Admin) == Admin
-  def isOwner(flags: Permissions) = (flags & Owner) == Owner
-  def isAll(flag: Permissions, flags: Seq[Permissions]) = flags.forall(f => is(f, flag))
-  def isAny(flag: Permissions, flags: Seq[Permissions]) = flags.exists(f => is(f, flag))
-}
 
