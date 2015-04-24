@@ -11,5 +11,6 @@ trait DataCore {
   val host = s"jdbc:sqlite:$dbFile"
 
   implicit val connection: Connection = DriverManager.getConnection(host)
+  connection.nativeSQL("PRAGMA foreign_keys = ON;")
 }
 
