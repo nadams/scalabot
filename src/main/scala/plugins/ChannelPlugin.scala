@@ -23,11 +23,9 @@ class ChannelPlugin extends Plugin with PluginHelper {
             for(name <- from.name; hostname <- from.hostname) yield
               if(user.hostname == s"$name@$hostname" && PermissionFlags.isAdmin(user.permissions)) {
                 bot ! JoinChannelCommand(channelName)
-                s"Joining channel $channelName"
-              } else {
-                "Sorry, you are not authorized"
-              }
-          }.getOrElse(Some("Sorry, you are not authorized"))
+                ""
+              } else ""
+          }.getOrElse(Some(""))
         } else None
       case _ => None
     }
