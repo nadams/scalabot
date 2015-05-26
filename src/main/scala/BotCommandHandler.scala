@@ -6,7 +6,7 @@ class BotCommandHandler(val plugins: Seq[Plugin]) {
   def handleMessage(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     plugins.flatMap { plugin =>
       plugin(from, to, message, bot).map { result =>
-        if(result == "") Some(result)
+        if(result.length > 0) Some(result)
         else None
       }.getOrElse(None)
     }
