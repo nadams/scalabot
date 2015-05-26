@@ -1,5 +1,7 @@
 package net.node3.scalabot
 
+import scala.collection.immutable.Seq
+
 import net.node3.scalabot.config._
 import Tokens._
 
@@ -16,6 +18,13 @@ object Messages {
     def apply(to: String) = Message(None, Command("PONG"), List(to))
     def unapply(msg: Message) = msg match {
       case Message(_, Command("PONG"), List(from)) => Some(from)
+      case _ => None
+    }
+  }
+
+  object Mode {
+    def unapply(msg: Message) = msg match {
+      case Message(Some(Prefix(from, _, _)), Command("MODE"), List(nick, modes)) => Some(modes)
       case _ => None
     }
   }
@@ -113,6 +122,10 @@ object Messages {
 
   object JoinChannelCommand {
     def apply(channel: String) = Message(None, Command("JOIN"), List(channel))
+  }
+
+  object JoinChannelsCommand {
+    def apply(channels: Seq[String]) = Message(None, Command("JOIN"), List(channels.mkString(",")))
   }
 
   object BotCommand {

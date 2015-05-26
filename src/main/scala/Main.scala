@@ -28,14 +28,15 @@ object Main {
 
     val system = ActorSystem("irc")
     val networks = Conf.config.getConfigList("bot.networks").map(Network(_))
-    val server = networks(0).hostname
-    val port = networks(0).port
     val nick = Conf.config.getString("bot.name")
     val realname = Conf.config.getString("bot.realname")
     val plugins = loadPlugins()
 
-    val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname, plugins))
-    val irc = system.actorOf(IRC.props(new InetSocketAddress(server, port), bot))
+    val bots = networks.map { network =>
+      val bot = system.actorOf(Bot.props("", nick, nick, "localhost", realname, network.channels, plugins))
+      val irc = system.actorOf(IRC.props(new InetSocketAddress(network.hostname, network.port), bot))
+      bot
+    }
   }
 
   def loadPlugins() : Seq[Plugin] = {
