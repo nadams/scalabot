@@ -17,29 +17,24 @@ class ChannelPlugin extends Plugin with PluginHelper {
   )
 
   def handleAdd(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
-    message.split(" ") match {
-      case Array(_, channelName, _*) =>
-        if(to == botName) {
-          userRepository.getUser(from.source).map { user =>
-            for(name <- from.name; hostname <- from.hostname) yield
-              if(user.hostname == s"$name@$hostname" && PermissionFlags.isAdmin(user.permissions)) {
-                // add channel to channel table
-                ""
-              } else ""
-          }.getOrElse(Some(""))
-        } else None
-      case _ => None
+    channelAction(from, to, message, bot) { channelName =>
+      ""
     }
 
   def handleJoin(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
+    channelAction(from, to, message, bot) { channelName =>
+      bot ! JoinChannelCommand(channelName)
+      ""
+    }
+
+  def channelAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: String => String): Option[String] =
     message.split(" ") match {
       case Array(_, channelName, _*) =>
         if(to == botName) {
           userRepository.getUser(from.source).map { user =>
             for(name <- from.name; hostname <- from.hostname) yield
               if(user.hostname == s"$name@$hostname" && PermissionFlags.isAdmin(user.permissions)) {
-                bot ! JoinChannelCommand(channelName)
-                ""
+                action(channelName)
               } else ""
           }.getOrElse(Some(""))
         } else None
