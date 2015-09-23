@@ -1,5 +1,7 @@
 package net.node3.scalabot.plugins
 
+import scala.collection.immutable.Seq
+
 import akka.actor.ActorRef
 
 import net.node3.scalabot._
@@ -16,28 +18,29 @@ class ChannelPlugin extends Plugin with PluginHelper {
     "add" -> handleAdd
   )
 
-  def handleAdd(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
-    channelAction(from, to, message, bot) { channelName =>
-      ""
-    }
+  def handleAdd(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
+    channelAction(from, to, message, bot) { channelName => Seq.empty }
 
-  def handleJoin(from: MessageSource, to: String, message: String, bot: ActorRef): Option[String] =
+  def handleJoin(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     channelAction(from, to, message, bot) { channelName =>
       bot ! JoinChannelCommand(channelName)
-      ""
+      Seq.empty
     }
 
-  def channelAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: String => String): Option[String] =
+  def channelAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: String => Seq[String]): Seq[String] =
     message.split(" ") match {
       case Array(_, channelName, _*) =>
         if(to == botName) {
           userRepository.getUser(from.source).map { user =>
-            for(name <- from.name; hostname <- from.hostname) yield
-              if(user.hostname == s"$name@$hostname" && PermissionFlags.isAdmin(user.permissions)) {
-                action(channelName)
-              } else ""
-          }.getOrElse(Some(""))
-        } else None
-      case _ => None
+            from.name.flatMap { name =>
+              from.hostname.map { hostname =>
+                if(user.hostname == s"$name@$hostname" && PermissionFlags.isAdmin(user.permissions)) {
+                  action(channelName)
+                } else Seq.empty
+              }
+            }.getOrElse(Seq.empty)
+          }.getOrElse(Seq.empty)
+        } else Seq.empty
+      case _ => Seq.empty
     }
 }
