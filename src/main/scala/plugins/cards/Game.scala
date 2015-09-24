@@ -13,10 +13,10 @@ class Game(
   val cards: Cards,
   var czar: String,
   var state: GameStates.State,
-  var currentBlackCard: Int
+  var currentBlackCard: BlackCard
 )
 
 object Game {
-  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, 0)
+  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, BlackCard(""))
 }
 

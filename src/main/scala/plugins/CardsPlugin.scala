@@ -38,17 +38,16 @@ class CardsPlugin extends Plugin with PluginHelper {
       } else {
         game.state = GameStates.Running
         game.czar = game.players.head._1
+        game.currentBlackCard = cards.blackCards.head
+
+        bot ! Messages.PrivMsg(channel, game.currentBlackCard.content)
 
         game.players.foreach { case (name, player) =>
-          val updatedPlayer = player.copy(cards = cards.whiteCards.take(10))
-          game.players.update(name, updatedPlayer)
-          bot ! Messages.PrivMsg(name, updatedPlayer.cardsToString)
+          bot ! Messages.PrivMsg(name, player.cardsToString)
         }
 
         Seq.empty
       }
-      // message all players their questions
-      // message channel the chosen black card
     }.getOrElse(Seq("There isn't a game currently running."))
 
   def stopGame(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
@@ -57,7 +56,7 @@ class CardsPlugin extends Plugin with PluginHelper {
   def joinGame(channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     games.get(channel).map { game =>
       if(game.state == GameStates.Init && !game.players.contains(to)) {
-        game.players += to -> Player()
+        game.players += to -> Player(Player.takeCards(cards.whiteCards))
         Seq(s"$to has joined the game", "Type `cards go` to start the game.")
       } else Seq.empty
     }.getOrElse("There isn't a game currently running.")
