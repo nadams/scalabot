@@ -1,11 +1,13 @@
 package net.node3.scalabot.plugins
 
+
 import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MutableMap }
 
 import akka.actor.ActorRef
 import com.typesafe.config.Config
 
+import net.node3.scalabot.Messages
 import net.node3.scalabot.config.Conf
 import net.node3.scalabot.{ Plugin, PluginHelper, MessageSource }
 import net.node3.scalabot.data._
@@ -15,14 +17,10 @@ class CardsPlugin extends Plugin with PluginHelper {
   type ChannelAction = (String, String, String, ActorRef) => Seq[String]
 
   override val messages = Map[String, MessageHandler]("cards" -> cards)
-  private val channelRegex = """((#|&).+)""".r
+  private val channelRegex = """(#.+)""".r
   private val games = MutableMap[String, Game]()
   private val config = CardsConfig(Conf.config.getConfig("bot.cards").getString("cardsPath"))
   private val cards = Cards(config.cardsPath)
-
-  implicit def stringToSeq(s: String): Seq[String] =
-    if(s.length == 0) Seq.empty
-    else Seq(s)
 
   def cards(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.toLowerCase.split(" ") match {
@@ -34,15 +32,24 @@ class CardsPlugin extends Plugin with PluginHelper {
     }
 
   def startGame(channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
-    ???
-    //games.get(channel).map { game =>
-    //  if(game.players.size < 2) Seq("Not enough players.")
-    //  else ???
-    //  // check player count
-    //  // set game state to in progress
-    //  // pick czar
-    //  // message all players their questions
-    //}.getOrElse(Seq("There isn't a game currently running."))
+    games.get(channel).map { game =>
+      if(game.players.size < 1) {
+        Seq("Must have more than 1 player to start the game.")
+      } else {
+        game.state = GameStates.Running
+        game.czar = game.players.head._1
+
+        game.players.foreach { case (name, player) =>
+          val updatedPlayer = player.copy(cards = cards.whiteCards.take(10))
+          game.players.update(name, updatedPlayer)
+          bot ! Messages.PrivMsg(name, updatedPlayer.cardsToString)
+        }
+
+        Seq.empty
+      }
+      // message all players their questions
+      // message channel the chosen black card
+    }.getOrElse(Seq("There isn't a game currently running."))
 
   def stopGame(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     ???

@@ -21,4 +21,8 @@ trait PluginHelper extends Plugin {
 
   override def handlesMessage(from: MessageSource, to: String, message: String): Boolean =
     messages.keySet.exists(message.toLowerCase.startsWith(_))
+
+  implicit def stringToSeq(s: String): Seq[String] =
+    if(s.length == 0) Seq.empty
+    else Seq(s)
 }
