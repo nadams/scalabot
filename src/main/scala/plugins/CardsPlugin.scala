@@ -1,6 +1,5 @@
 package net.node3.scalabot.plugins
 
-
 import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MutableMap }
 
@@ -15,6 +14,7 @@ import net.node3.scalabot.plugins.cards._
 
 class CardsPlugin extends Plugin with PluginHelper {
   type ChannelAction = (String, String, String, ActorRef) => Seq[String]
+  type GameAction = (Game, String, String, String, ActorRef) => Seq[String]
 
   override val messages = Map[String, MessageHandler]("cards" -> cards)
   private val channelRegex = """(#.+)""".r
@@ -25,41 +25,41 @@ class CardsPlugin extends Plugin with PluginHelper {
   def cards(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.toLowerCase.split(" ") match {
       case Array(_, "start", _*) => channelAction(from, to, message, bot)(startCards)
-      case Array(_, "join", _*) => channelAction(from, to, message, bot)(joinGame)
-      case Array(_, "go", _*) => channelAction(from, to, message, bot)(startGame)
+      case Array(_, "join", _*) => gameAction(from, to, message, bot)(joinGame)
+      case Array(_, "go", _*) => gameAction(from, to, message, bot)(startGame)
+      case Array(_, "stop", _*) => gameAction(from, to, message, bot)(stopGame)
       case Array(_, channel, "select", number, _*) => Seq(channel, "select", number)
       case _ => Seq.empty
     }
 
-  def startGame(channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
-    games.get(channel).map { game =>
-      if(game.players.size < 1) {
-        Seq("Must have more than 1 player to start the game.")
-      } else {
-        game.state = GameStates.Running
-        game.czar = game.players.head._1
-        game.currentBlackCard = cards.blackCards.head
+  def startGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
+    if(game.players.size < 1) {
+      Seq("Must have more than 1 player to start the game.")
+    } else {
+      val updatedGame = game.copy(
+        state = GameStates.Running,
+        czar = game.players.head._1,
+        currentBlackCard = game.nextBlackCard(cards.blackCards)
+      )
 
-        bot ! Messages.PrivMsg(channel, game.currentBlackCard.content)
+      games.update(channel, updatedGame)
+      updatedGame.sendQuestionToChannel(channel, bot)
+      updatedGame.sendCardsToPlayers(bot)
 
-        game.players.foreach { case (name, player) =>
-          bot ! Messages.PrivMsg(name, player.cardsToString)
-        }
+      Seq.empty
+    }
 
-        Seq.empty
-      }
-    }.getOrElse(Seq("There isn't a game currently running."))
+  def stopGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] = {
+    games.remove(channel)
+    // print scores
+    Seq.empty
+  }
 
-  def stopGame(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
-    ???
-
-  def joinGame(channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
-    games.get(channel).map { game =>
-      if(game.state == GameStates.Init && !game.players.contains(to)) {
-        game.players += to -> Player(Player.takeCards(cards.whiteCards))
-        Seq(s"$to has joined the game", "Type `cards go` to start the game.")
-      } else Seq.empty
-    }.getOrElse("There isn't a game currently running.")
+  def joinGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
+    if(game.state == GameStates.Init && !game.players.contains(to)) {
+      game.players += to -> Player(Player.takeCards(cards.whiteCards))
+      Seq(s"$to has joined the game", "Type `cards go` to start the game.")
+    } else Seq.empty
 
   def startCards(channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     if(games.contains(channel)) {
@@ -68,6 +68,11 @@ class CardsPlugin extends Plugin with PluginHelper {
       games.put(channel, Game())
       Seq("Type `cards join` in this channel to join the game.", "Type `cards start` to start the game.")
     }
+
+  private def gameAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: GameAction): Seq[String] =
+    getChannel(from).map { channel =>
+      games.get(channel).map(action(_, channel, to, message, bot)).getOrElse(Seq("There isn't a game currently running."))
+    }.getOrElse("This message must be performed on a channel.")
 
   private def channelAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: ChannelAction): Seq[String] =
     getChannel(from).map(action(_, to, message, bot)).getOrElse("This message must be performed on a channel.")

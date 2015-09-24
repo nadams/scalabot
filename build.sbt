@@ -17,7 +17,8 @@ libraryDependencies ++= Seq(
   "com.github.nscala-time" %% "nscala-time" % "1.8.0",
   "com.roundeights" %% "hasher" % "1.0.0",
   "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
-  "org.json4s" %% "json4s-native" % "3.2.11"
+  "org.json4s" %% "json4s-native" % "3.2.11",
+  "commons-lang" % "commons-lang" % "2.6"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
