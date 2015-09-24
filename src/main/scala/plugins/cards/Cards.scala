@@ -25,20 +25,21 @@ object Cards {
 
     implicit val formats = DefaultFormats
 
-    def mergeCards(obj: org.json4s.JsonAST.JValue) = ((obj \ "classic") merge (obj \ "custom"))
+    def mergeCards(obj: JValue) = ((obj \ "classic") merge (obj \ "custom"))
+
+    def extractCards(json: JValue, key: String): Seq[String] =
+      mergeCards((json \ key)).extract[Seq[String]]
+
     def fixContent(s: String): String =
       StringEscapeUtils.unescapeHtml(s.replace(" <br>", "."))
 
     val file = scala.io.Source.fromFile(path)
     val lines = try file.getLines mkString "\n" finally file.close()
     val json = parse(lines)
-    val blackCards = mergeCards((json \ "black")).extract[Seq[String]]
-    val whiteCards = mergeCards((json \ "white")).extract[Seq[String]]
+    val blackCards = extractCards(json, "black")
+    val whiteCards = extractCards(json, "white")
 
-    val c = Cards(blackCards.map(x => BlackCard(fixContent(x))), whiteCards.map(x => WhiteCard(fixContent(x))))
-    println(c)
-
-    c
+    Cards(blackCards.map(x => BlackCard(fixContent(x))), whiteCards.map(x => WhiteCard(fixContent(x))))
   }
 }
 
