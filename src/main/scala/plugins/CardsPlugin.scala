@@ -31,7 +31,7 @@ class Game(
 )
 
 object Game {
-  def apply(): Game = new Game(MutableMap.empty, "", GameStates.Init)
+  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, 0)
 }
 
 case class WhiteCard(val content: String)
@@ -48,6 +48,9 @@ object CardsConfig {
 }
 
 case class Cards(val blackCards: Seq[BlackCard], val whiteCards: Seq[WhiteCard])
+object Cards {
+  def apply(): Cards = Cards(Seq.empty, Seq.empty)
+}
 
 class CardsPlugin extends Plugin with PluginHelper {
   type ChannelAction = (String, String, String, ActorRef) => Seq[String]
@@ -55,7 +58,8 @@ class CardsPlugin extends Plugin with PluginHelper {
   override val messages = Map[String, MessageHandler]("cards" -> cards)
   private val channelRegex = """((#|&).+)""".r
   private val games = MutableMap[String, Game]()
-  private val cards = loadCards(CardsConfig(Conf.config.getConfig("bot.cards")))
+  private val config = CardsConfig(Conf.config.getConfig("bot.cards").getString("cardsPath"))
+  private val cards = loadCards(config.cardsPath)
 
   def cards(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.toLowerCase.split(" ") match {
@@ -108,6 +112,6 @@ class CardsPlugin extends Plugin with PluginHelper {
     val blackCards = mergeCards((json \ "black")).extract[Seq[String]]
     val whiteCards = mergeCards((json \ "white")).extract[Seq[String]]
 
-    Cards(blackCards.map(BlackCard(_)), whiteCards.map(WhiteCard(_))
+    Cards(blackCards.map(BlackCard(_)), whiteCards.map(WhiteCard(_)))
   }
 }
