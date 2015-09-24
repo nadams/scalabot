@@ -45,8 +45,9 @@ object Main {
         println(s"Loading plugin: $name")
         Some(Class.forName(name).newInstance.asInstanceOf[Plugin])
       } catch {
-        case _: Throwable => {
+        case e: Throwable => {
           println(s"Could not load plugin: $name")
+          println(e)
           None
         }
       }
