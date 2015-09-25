@@ -25,12 +25,24 @@ case class Game(
     cards(random.nextInt(cards.length))
 
   def sendCardsToPlayers(bot: ActorRef): Unit =
-    players.foreach { case (name, player) =>
+    players.filterNot { case (name, player) => name == czar }.foreach { case (name, player) =>
       bot ! Messages.PrivMsg(name, player.cardsToString)
     }
 
-  def sendQuestionToChannel(channel: String, bot: ActorRef): Unit =
-    bot ! Messages.PrivMsg(channel, currentBlackCard.content)
+  def sendQuestion(recipient: String, bot: ActorRef): Unit =
+    bot ! Messages.PrivMsg(recipient, currentBlackCard.content)
+
+  def sendScores(recipient: String, bot: ActorRef): Unit = {
+    bot ! Messages.PrivMsg(recipient, "The game has ended, here are the scores:")
+    players.toSeq.sortBy(_._2.points)(Ordering[Int].reverse).foreach { case (name, player) =>
+      bot ! Messages.PrivMsg(recipient, s"$name: ${player.points}")
+    }
+  }
+
+  def allPlayersHavePlayed(): Boolean = {
+    val numBlanks = currentBlackCard.numBlanks
+    players.forall { case (name, player) => player.selectedCards == numBlanks }
+  }
 }
 
 object Game {

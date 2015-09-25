@@ -2,10 +2,12 @@ package net.node3.scalabot.plugins
 
 import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MutableMap }
+import scala.util.Random
 
 import akka.actor.ActorRef
 import com.typesafe.config.Config
 
+import net.node3.scalabot.Implicits._
 import net.node3.scalabot.Messages
 import net.node3.scalabot.config.Conf
 import net.node3.scalabot.{ Plugin, PluginHelper, MessageSource }
@@ -28,9 +30,41 @@ class CardsPlugin extends Plugin with PluginHelper {
       case Array(_, "join", _*) => gameAction(from, to, message, bot)(joinGame)
       case Array(_, "go", _*) => gameAction(from, to, message, bot)(startGame)
       case Array(_, "stop", _*) => gameAction(from, to, message, bot)(stopGame)
-      case Array(_, channel, "select", number, _*) => Seq(channel, "select", number)
+      case Array(_, channel, "select", number, _*) => selectCards(from, to, message, bot, channel, number)
       case _ => Seq.empty
     }
+
+  def selectCards(from: MessageSource, to: String, message: String, bot: ActorRef, chan: String, number: String): Seq[String] =
+    getChannel(chan).map { channel =>
+      games.get(channel).map { game =>
+        if(game.allPlayersHavePlayed) {
+          val answers = Random.shuffle(game.players.map { case (name, player) =>
+            player.selectedCards.map(player.cards(_).content).mkString("; ")
+          }).zipWithIndex.map { case (answer, index) => s"$index) $answer" }
+
+          println(answers)
+          // print player's cards to channel, random order.
+          // ask czar to pick a card
+          // step the game
+        } else {
+          val playerName = from.source
+          game.players.filterNot { case (name, player) => name == game.czar }.get(playerName).map { player =>
+            val numBlanks = game.currentBlackCard.numBlanks
+            if(player.selectedCards.size < numBlanks) {
+              number.toIntOpt.foreach { cardNumber =>
+                // TODO: Check if the card value is valid.
+                game.players.update(playerName, player.copy(selectedCards = player.selectedCards :+ cardNumber))
+              }
+            } else {
+              val message = s"Select ${numBlanks - player.selectedCards.size} more card(s)"
+              bot ! Messages.PrivMsg(playerName, message)
+            }
+          }
+        }
+
+        Seq.empty
+      }.getOrElse(Seq.empty)
+    }.getOrElse(Seq.empty)
 
   def startGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     if(game.players.size < 1) {
@@ -43,7 +77,7 @@ class CardsPlugin extends Plugin with PluginHelper {
       )
 
       games.update(channel, updatedGame)
-      updatedGame.sendQuestionToChannel(channel, bot)
+      updatedGame.sendQuestion(channel, bot)
       updatedGame.sendCardsToPlayers(bot)
 
       Seq.empty
@@ -51,7 +85,7 @@ class CardsPlugin extends Plugin with PluginHelper {
 
   def stopGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] = {
     games.remove(channel)
-    // print scores
+    game.sendScores(channel, bot)
     Seq.empty
   }
 
@@ -77,7 +111,9 @@ class CardsPlugin extends Plugin with PluginHelper {
   private def channelAction(from: MessageSource, to: String, message: String, bot: ActorRef)(action: ChannelAction): Seq[String] =
     getChannel(from).map(action(_, to, message, bot)).getOrElse("This message must be performed on a channel.")
 
-  private def getChannel(from: MessageSource): Option[String] = from.source match {
+  private def getChannel(from: MessageSource): Option[String] = getChannel(from.source)
+
+  private def getChannel(chan: String): Option[String] = chan match {
     case channelRegex(channel) => Some(channel)
     case _ => None
   }
