@@ -3,6 +3,7 @@ package net.node3.scalabot.db.migrate
 object Migration {
   import scala.util.matching._
   import scala.io.Source
+  import scala.language.postfixOps
 
   val sectionRegex = """#\s*---\s*!""".r
 

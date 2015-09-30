@@ -1,6 +1,8 @@
 package net.node3.scalabot.plugins.cards
 
+import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MutableMap }
+import scala.util.Random
 
 import akka.actor.ActorRef
 
@@ -17,12 +19,23 @@ case class Game(
   val cards: Cards,
   val czar: String,
   val state: GameStates.State,
-  val currentBlackCard: BlackCard
+  val currentBlackCard: BlackCard,
+  val playerAnswers: MutableMap[Int, Player],
+  val czarAnswer: Option[Int]
 ) {
-  private val random = new scala.util.Random
+  private val random = new Random
 
-  def nextBlackCard(cards: Seq[BlackCard]) =
-    cards(random.nextInt(cards.length))
+  def cardCzar(): Player = players(czar)
+
+  def cardPickers(): Map[String, Player] = players.filterNot { case(name, player) =>
+    name == czar
+  }.toMap
+
+  def nextBlackCard(cards: Seq[BlackCard]) = {
+    val multipleBlanks = cards.filter(x => x.content.foldLeft(0)((acc, c) => if(c == '_') acc + 1 else acc) > 1)
+    multipleBlanks(random.nextInt(multipleBlanks.length))
+  }
+    //cards(random.nextInt(cards.length))
 
   def sendCardsToPlayers(bot: ActorRef): Unit =
     players.filterNot { case (name, player) => name == czar }.foreach { case (name, player) =>
@@ -41,11 +54,21 @@ case class Game(
 
   def allPlayersHavePlayed(): Boolean = {
     val numBlanks = currentBlackCard.numBlanks
-    players.forall { case (name, player) => player.selectedCards == numBlanks }
+    cardPickers.forall { case (name, player) => player.selectedCards.length >= numBlanks }
+  }
+
+  def selectAndPrintAnswers(recipient: String, bot: ActorRef): Unit = {
+    playerAnswers.empty
+    playerAnswers ++= Random.shuffle(cardPickers.values).zipWithIndex.map(x => x._2 + 1 -> x._1)
+
+    bot ! Messages.PrivMsg(recipient, s"$czar pick a card")
+    playerAnswers.keys.toSeq.sortBy(x => x).foreach { key =>
+      bot ! Messages.PrivMsg(recipient, s"$key) ${playerAnswers(key).answerString}")
+    }
   }
 }
 
 object Game {
-  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, BlackCard(""))
+  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, BlackCard(""), MutableMap.empty, None)
 }
 

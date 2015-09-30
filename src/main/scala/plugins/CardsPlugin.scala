@@ -18,7 +18,7 @@ class CardsPlugin extends Plugin with PluginHelper {
   type ChannelAction = (String, String, String, ActorRef) => Seq[String]
   type GameAction = (Game, String, String, String, ActorRef) => Seq[String]
 
-  override val messages = Map[String, MessageHandler]("cards" -> cards)
+  override val messages = Map[String, MessageHandler]("cards" -> synchronized { cards })
   private val channelRegex = """(#.+)""".r
   private val games = MutableMap[String, Game]()
   private val config = CardsConfig(Conf.config.getConfig("bot.cards").getString("cardsPath"))
@@ -31,33 +31,33 @@ class CardsPlugin extends Plugin with PluginHelper {
       case Array(_, "go", _*) => gameAction(from, to, message, bot)(startGame)
       case Array(_, "stop", _*) => gameAction(from, to, message, bot)(stopGame)
       case Array(_, channel, "select", number, _*) => selectCards(from, to, message, bot, channel, number)
+      case Array(_, number, _*) => getChannel(from).map(selectCards(from, to, message, bot, _, number)).getOrElse(Seq.empty)
       case _ => Seq.empty
     }
 
   def selectCards(from: MessageSource, to: String, message: String, bot: ActorRef, chan: String, number: String): Seq[String] =
     getChannel(chan).map { channel =>
       games.get(channel).map { game =>
-        if(game.allPlayersHavePlayed) {
-          val answers = Random.shuffle(game.players.map { case (name, player) =>
-            player.selectedCards.map(player.cards(_).content).mkString("; ")
-          }).zipWithIndex.map { case (answer, index) => s"$index) $answer" }
-
-          println(answers)
-          // print player's cards to channel, random order.
-          // ask czar to pick a card
-          // step the game
-        } else {
-          val playerName = from.source
-          game.players.filterNot { case (name, player) => name == game.czar }.get(playerName).map { player =>
-            val numBlanks = game.currentBlackCard.numBlanks
-            if(player.selectedCards.size < numBlanks) {
-              number.toIntOpt.foreach { cardNumber =>
-                // TODO: Check if the card value is valid.
-                game.players.update(playerName, player.copy(selectedCards = player.selectedCards :+ cardNumber))
+        number.toIntOpt.foreach { cardNumber =>
+          if(game.czar == from.source && game.cardPickers.get(from.source).isEmpty) {
+            // this is czar
+          } else {
+            game.cardPickers.get(from.source).map { picker =>
+              val numBlanks = game.currentBlackCard.numBlanks
+              if(picker.selectedCards.size < numBlanks) {
+                if(picker.validAnswer(cardNumber)) {
+                  val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ cardNumber)
+                  game.players.update(picker.name, updatedPicker)
+                  if(updatedPicker.selectedCards.size < numBlanks) {
+                    val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
+                    bot ! Messages.PrivMsg(updatedPicker.name, message)
+                  }
+                }
               }
-            } else {
-              val message = s"Select ${numBlanks - player.selectedCards.size} more card(s)"
-              bot ! Messages.PrivMsg(playerName, message)
+            }
+
+            if(game.allPlayersHavePlayed) {
+              game.selectAndPrintAnswers(channel, bot)
             }
           }
         }
@@ -91,7 +91,7 @@ class CardsPlugin extends Plugin with PluginHelper {
 
   def joinGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     if(game.state == GameStates.Init && !game.players.contains(to)) {
-      game.players += to -> Player(Player.takeCards(cards.whiteCards))
+      game.players += to -> Player(to, Player.takeCards(cards.whiteCards))
       Seq(s"$to has joined the game", "Type `cards go` to start the game.")
     } else Seq.empty
 

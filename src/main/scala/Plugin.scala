@@ -1,5 +1,7 @@
 package net.node3.scalabot
 
+import scala.language.implicitConversions
+
 import akka.actor.ActorRef
 
 case class MessageSource(source: String, name: Option[String], hostname: Option[String])

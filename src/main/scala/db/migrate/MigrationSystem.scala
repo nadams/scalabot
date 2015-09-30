@@ -1,5 +1,7 @@
 package net.node3.scalabot.db.migrate
 
+import scala.language.postfixOps
+
 import anorm._
 import anorm.SqlParser._
 

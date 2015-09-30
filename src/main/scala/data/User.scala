@@ -1,5 +1,7 @@
 package net.node3.scalabot.data
 
+import scala.language.postfixOps
+
 import java.util.Date
 
 import com.github.nscala_time.time.Imports._

@@ -6,7 +6,11 @@ import org.apache.commons.lang.StringEscapeUtils
 case class WhiteCard(val content: String)
 case class BlackCard(val content: String) {
   private val blankRegex = """_""".r
-  def numBlanks = blankRegex.findAllIn(content).size
+  def numBlanks: Int = {
+    val numUnderscores = blankRegex.findAllIn(content).size
+    if(numUnderscores == 0) 1
+    else numUnderscores
+  }
 }
 
 case class CardsConfig(val cardsPath: String)

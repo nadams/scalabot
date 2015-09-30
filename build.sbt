@@ -25,6 +25,8 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 
 scalacOptions += "-deprecation"
 
+scalacOptions += "-feature"
+
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
