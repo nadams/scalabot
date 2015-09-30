@@ -46,12 +46,12 @@ class CardsPlugin extends Plugin with PluginHelper {
               game.cardPickers.foreach { case(name, player) =>
                 game.players.update(name, player.copy(
                   selectedCards = Seq.empty,
-                  cards = player.backfillCards(cards.whiteCards, game.currentBlackCard.numBlanks)
+                  cards = player.backfillCards(cards.whiteCards, game.question.numBlanks)
                 ))
               }
 
               val updatedGame = game.copy(
-                currentBlackCard = game.nextBlackCard(cards.blackCards),
+                question = game.nextBlackCard(cards.blackCards),
                 playerAnswers = MutableMap.empty,
                 czar = game.nextCzar().name
               )
@@ -61,7 +61,7 @@ class CardsPlugin extends Plugin with PluginHelper {
             }
           } else {
             game.cardPickers.get(from.source).map { picker =>
-              val numBlanks = game.currentBlackCard.numBlanks
+              val numBlanks = game.question.numBlanks
               if(picker.selectedCards.size < numBlanks) {
                 if(picker.validAnswer(cardNumber)) {
                   val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ cardNumber)
@@ -90,9 +90,8 @@ class CardsPlugin extends Plugin with PluginHelper {
       Seq("Must have more than 1 player to start the game.")
     } else {
       val updatedGame = game.copy(
-        state = GameStates.Running,
         czar = game.players.head._1,
-        currentBlackCard = game.nextBlackCard(cards.blackCards)
+        question = game.nextBlackCard(cards.blackCards)
       )
 
       games.update(channel, updatedGame)
@@ -108,7 +107,7 @@ class CardsPlugin extends Plugin with PluginHelper {
   }
 
   def joinGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
-    if(game.state == GameStates.Init && !game.players.contains(to)) {
+    if(!game.players.contains(to)) {
       game.players += to -> Player(to, Player.takeCards(cards.whiteCards))
       Seq(s"$to has joined the game", "Type `cards go` to start the game.")
     } else Seq.empty

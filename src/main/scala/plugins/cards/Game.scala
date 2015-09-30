@@ -16,10 +16,8 @@ object GameStates extends Enumeration {
 
 case class Game(
   val players: MutableMap[String, Player],
-  val cards: Cards,
   val czar: String,
-  val state: GameStates.State,
-  val currentBlackCard: BlackCard,
+  val question: BlackCard,
   val playerAnswers: MutableMap[Int, Player],
   val czarAnswer: Option[Int]
 ) {
@@ -44,7 +42,7 @@ case class Game(
     bot ! Messages.PrivMsg(recipient, s"$czar is now card czar")
 
   def sendQuestion(recipient: String, bot: ActorRef): Unit =
-    bot ! Messages.PrivMsg(recipient, currentBlackCard.content)
+    bot ! Messages.PrivMsg(recipient, question.content)
 
   def sendScores(recipient: String, bot: ActorRef): Unit = {
     bot ! Messages.PrivMsg(recipient, "The game has ended, here are the scores:")
@@ -54,7 +52,7 @@ case class Game(
   }
 
   def allPlayersHavePlayed(): Boolean = {
-    val numBlanks = currentBlackCard.numBlanks
+    val numBlanks = question.numBlanks
     cardPickers.forall { case (name, player) => player.selectedCards.length >= numBlanks }
   }
 
@@ -82,6 +80,6 @@ case class Game(
 }
 
 object Game {
-  def apply(): Game = new Game(MutableMap.empty, Cards(), "", GameStates.Init, BlackCard(""), MutableMap.empty, None)
+  def apply(): Game = new Game(MutableMap.empty, "", BlackCard(""), MutableMap.empty, None)
 }
 
