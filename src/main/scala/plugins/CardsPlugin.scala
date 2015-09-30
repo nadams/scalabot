@@ -64,7 +64,7 @@ class CardsPlugin extends Plugin with PluginHelper {
               val numBlanks = game.question.numBlanks
               if(picker.selectedCards.size < numBlanks) {
                 if(picker.validAnswer(cardNumber)) {
-                  val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ cardNumber)
+                  val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ cardNumber - 1)
                   game.players.update(picker.name, updatedPicker)
                   if(updatedPicker.selectedCards.size < numBlanks) {
                     val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
