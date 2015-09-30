@@ -86,7 +86,7 @@ class CardsPlugin extends Plugin with PluginHelper {
   }
 
   def startGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
-    if(game.players.size < 1) {
+    if(game.players.size < 2) {
       Seq("Must have more than 1 player to start the game.")
     } else {
       val updatedGame = game.copy(
