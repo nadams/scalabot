@@ -11,6 +11,9 @@ case class Player(val name: String, val points: Int, val cards: Seq[WhiteCard], 
 
   def validAnswer(answer: Int): Boolean =
     answer > 0 && answer <= cards.length && !selectedCards.contains(answer)
+
+  def backfillCards(allCards: Seq[WhiteCard], numCards: Int): Seq[WhiteCard] =
+    cards.diff(selectedCards.map(x => cards(x - 1))) ++ Player.takeCards(allCards, numCards)
 }
 
 object Player {

@@ -26,21 +26,39 @@ class CardsPlugin extends Plugin with PluginHelper {
 
   def cards(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.toLowerCase.split(" ") match {
-      case Array(_, "start", _*) => channelAction(from, to, message, bot)(startCards)
-      case Array(_, "join", _*) => gameAction(from, to, message, bot)(joinGame)
-      case Array(_, "go", _*) => gameAction(from, to, message, bot)(startGame)
-      case Array(_, "stop", _*) => gameAction(from, to, message, bot)(stopGame)
-      case Array(_, channel, "select", number, _*) => selectCards(from, to, message, bot, channel, number)
-      case Array(_, number, _*) => getChannel(from).map(selectCards(from, to, message, bot, _, number)).getOrElse(Seq.empty)
+      case Array(_, "start") => channelAction(from, to, message, bot)(startCards)
+      case Array(_, "join") => gameAction(from, to, message, bot)(joinGame)
+      case Array(_, "go") => gameAction(from, to, message, bot)(startGame)
+      case Array(_, "stop") => gameAction(from, to, message, bot)(stopGame)
+      case Array(_, number) => getChannel(from).map(selectCards(from, to, message, bot, _, number)).getOrElse(Seq.empty)
+      case Array(_, channel, "select", number) => selectCards(from, to, message, bot, channel, number)
       case _ => Seq.empty
     }
 
-  def selectCards(from: MessageSource, to: String, message: String, bot: ActorRef, chan: String, number: String): Seq[String] =
+  def selectCards(from: MessageSource, to: String, message: String, bot: ActorRef, chan: String, number: String): Seq[String] = {
     getChannel(chan).map { channel =>
       games.get(channel).map { game =>
         number.toIntOpt.foreach { cardNumber =>
-          if(game.czar == from.source && game.cardPickers.get(from.source).isEmpty) {
-            // this is czar
+          if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
+            game.playerAnswers.get(cardNumber).map { player =>
+              val updatedPlayer = player.copy(points = player.points + 1)
+              game.players.update(updatedPlayer.name, updatedPlayer)
+              game.cardPickers.foreach { case(name, player) =>
+                game.players.update(name, player.copy(
+                  selectedCards = Seq.empty,
+                  cards = player.backfillCards(cards.whiteCards, game.currentBlackCard.numBlanks)
+                ))
+              }
+
+              val updatedGame = game.copy(
+                currentBlackCard = game.nextBlackCard(cards.blackCards),
+                playerAnswers = MutableMap.empty,
+                czar = game.nextCzar().name
+              )
+
+              games.update(channel, updatedGame)
+              updatedGame.stepGame(channel, bot)
+            }
           } else {
             game.cardPickers.get(from.source).map { picker =>
               val numBlanks = game.currentBlackCard.numBlanks
@@ -61,10 +79,11 @@ class CardsPlugin extends Plugin with PluginHelper {
             }
           }
         }
+      }
+    }
 
-        Seq.empty
-      }.getOrElse(Seq.empty)
-    }.getOrElse(Seq.empty)
+    Seq.empty
+  }
 
   def startGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     if(game.players.size < 1) {
@@ -77,8 +96,7 @@ class CardsPlugin extends Plugin with PluginHelper {
       )
 
       games.update(channel, updatedGame)
-      updatedGame.sendQuestion(channel, bot)
-      updatedGame.sendCardsToPlayers(bot)
+      updatedGame.stepGame(channel, bot)
 
       Seq.empty
     }

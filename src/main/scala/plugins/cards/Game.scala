@@ -31,16 +31,17 @@ case class Game(
     name == czar
   }.toMap
 
-  def nextBlackCard(cards: Seq[BlackCard]) = {
-    val multipleBlanks = cards.filter(x => x.content.foldLeft(0)((acc, c) => if(c == '_') acc + 1 else acc) > 1)
-    multipleBlanks(random.nextInt(multipleBlanks.length))
-  }
-    //cards(random.nextInt(cards.length))
+  def nextBlackCard(cards: Seq[BlackCard]): BlackCard =
+    cards(random.nextInt(cards.length))
 
   def sendCardsToPlayers(bot: ActorRef): Unit =
     players.filterNot { case (name, player) => name == czar }.foreach { case (name, player) =>
+      sendQuestion(name, bot)
       bot ! Messages.PrivMsg(name, player.cardsToString)
     }
+
+  def printCzar(recipient: String, bot: ActorRef): Unit =
+    bot ! Messages.PrivMsg(recipient, s"$czar is now card czar")
 
   def sendQuestion(recipient: String, bot: ActorRef): Unit =
     bot ! Messages.PrivMsg(recipient, currentBlackCard.content)
@@ -65,6 +66,18 @@ case class Game(
     playerAnswers.keys.toSeq.sortBy(x => x).foreach { key =>
       bot ! Messages.PrivMsg(recipient, s"$key) ${playerAnswers(key).answerString}")
     }
+  }
+
+  def nextCzar(): Player = {
+    val playerValues = players.values.toArray
+    val czarIndex = playerValues.indexOf(players(czar))
+    playerValues((czarIndex + 1) % playerValues.length)
+  }
+
+  def stepGame(recipient: String, bot: ActorRef): Unit = {
+    printCzar(recipient, bot)
+    sendQuestion(recipient, bot)
+    sendCardsToPlayers(bot)
   }
 }
 
