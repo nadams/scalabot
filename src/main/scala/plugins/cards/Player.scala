@@ -2,7 +2,7 @@ package net.node3.scalabot.plugins.cards
 
 case class Player(val name: String, val points: Int, val cards: Seq[WhiteCard], val selectedCards: Seq[Int]) {
   def cardsToString(): String = cards.zipWithIndex.foldLeft("") { case (acc, (content, index)) =>
-    s"$acc ${index + 1}) ${content.content}"
+    s"$acc (${index + 1}) ${content.content}"
   }
 
   def answerString(): String = selectedCards.foldLeft("") { case (acc, index) =>
