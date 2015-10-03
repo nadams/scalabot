@@ -41,8 +41,8 @@ class CardsPlugin extends Plugin with PluginHelper {
         number.toIntOpt.foreach { cardNumber =>
           if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
             game.playerAnswers.get(cardNumber).map { player =>
-              val updatedPlayer = player.copy(points = player.points + 1)
-              game.players.update(updatedPlayer.name, updatedPlayer)
+              val winner = player.copy(points = player.points + 1)
+              game.players.update(winner.name, winner)
               game.cardPickers.foreach { case(name, player) =>
                 game.players.update(name, player.copy(
                   selectedCards = Seq.empty,
@@ -53,10 +53,12 @@ class CardsPlugin extends Plugin with PluginHelper {
               val updatedGame = game.copy(
                 question = game.nextBlackCard(cards.blackCards),
                 playerAnswers = MutableMap.empty,
-                czar = game.nextCzar().name
+                czar = game.nextCzar().name,
+                czarAnswer = None
               )
 
               games.update(channel, updatedGame)
+              bot ! Messages.PrivMsg(channel, s"${player.name} wins")
               updatedGame.stepGame(channel, bot)
             }
           } else {
