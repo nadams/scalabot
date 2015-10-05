@@ -63,12 +63,18 @@ class CardsPlugin extends Plugin with PluginHelper {
             }
           }
         } else {
-          game.cardPickers.get(from.source).foreach { picker =>
-            game.pickCard(picker, message, bot)
-          }
+          game.cardPickers.get(from.source).map(game.pickCard(_, message, bot)).map { game =>
+            games.update(channel, game)
+            if(game.allPlayersHavePlayed) {
+              val updatedGame = game.selectAnswers()
+              games.update(channel, updatedGame)
 
-          if(game.allPlayersHavePlayed) {
-            game.selectAndPrintAnswers(channel, bot)
+              bot ! Messages.PrivMsg(channel, s"${updatedGame.czar} pick a card")
+              println(updatedGame)
+              updatedGame.playerAnswers.keys.toSeq.sortBy(x => x).foreach { key =>
+                bot ! Messages.PrivMsg(channel, s"($key) ${updatedGame.playerAnswers(key).answerString}")
+              }
+            }
           }
         }
       }
@@ -98,7 +104,7 @@ class CardsPlugin extends Plugin with PluginHelper {
 
   def joinGame(game: Game, channel: String, to: String, message: String, bot: ActorRef): Seq[String] =
     if(!game.players.contains(to)) {
-      game.players += to -> Player(to, Player.takeCards(cards.whiteCards))
+      games.update(channel, game.copy(players = game.players + (to -> Player(to, Player.takeCards(cards.whiteCards)))))
       Seq(s"$to has joined the game", "Type `cards go` to start the game.")
     } else Seq.empty
 

@@ -1,7 +1,6 @@
 package net.node3.scalabot.plugins.cards
 
 import scala.collection.immutable.Map
-import scala.collection.mutable.{ Map => MutableMap }
 import scala.util.Random
 
 import akka.actor.ActorRef
@@ -16,10 +15,10 @@ object GameStates extends Enumeration {
 }
 
 case class Game(
-  val players: MutableMap[String, Player],
+  val players: Map[String, Player],
   val czar: String,
   val question: BlackCard,
-  val playerAnswers: MutableMap[Int, Player],
+  val playerAnswers: Map[Int, Player],
   val czarAnswer: Option[Int]
 ) {
   private val random = new Random
@@ -56,15 +55,8 @@ case class Game(
     player.selectedCards.length >= question.numBlanks && player.selectedCards.map(player.cards(_)).forall(!_.isBlank)
   }
 
-  def selectAndPrintAnswers(recipient: String, bot: ActorRef): Unit = {
-    playerAnswers.empty
-    playerAnswers ++= Random.shuffle(cardPickers.values).zipWithIndex.map(x => x._2 + 1 -> x._1)
-
-    bot ! Messages.PrivMsg(recipient, s"$czar pick a card")
-    playerAnswers.keys.toSeq.sortBy(x => x).foreach { key =>
-      bot ! Messages.PrivMsg(recipient, s"$key) ${playerAnswers(key).answerString}")
-    }
-  }
+  def selectAnswers(): Game =
+    copy(playerAnswers = Random.shuffle(cardPickers.values).zipWithIndex.map(x => x._2 + 1 -> x._1).toMap)
 
   def nextCzar(): Player = {
     val playerValues = players.values.toArray
@@ -81,46 +73,46 @@ case class Game(
   def pickAnswer(answer: Int, cards: Cards): (Player, Game) = {
     val player = playerAnswers(answer)
     val winner = player.copy(points = player.points + 1)
-    players.update(winner.name, winner)
-    cardPickers.foreach { case(name, player) =>
-      players.update(name, player.copy(
-        selectedCards = Seq.empty,
-        cards = player.backfillCards(cards.whiteCards, question.numBlanks)
-      ))
-    }
-
     winner -> copy(
+      players = players.updated(winner.name, winner) ++ cardPickers.values.map { player =>
+        player.name -> player.copy(
+          selectedCards = Seq.empty,
+          cards = player.backfillCards(cards.whiteCards, question.numBlanks)
+        )
+      },
       question = nextBlackCard(cards.blackCards),
-      playerAnswers = MutableMap.empty,
+      playerAnswers = Map.empty,
       czar = nextCzar().name,
       czarAnswer = None
     )
   }
 
-  def pickCard(picker: Player, message: String, bot: ActorRef): Unit = {
+  def pickCard(picker: Player, message: String, bot: ActorRef): Game = {
     val numBlanks = question.numBlanks
     if(picker.lastAnswer.nonEmpty && picker.lastAnswer.forall(_.isBlank)) {
       val filledBlank = picker.lastAnswer.map(_.copy(message)).getOrElse(WhiteCard.blankCard)
-      picker.selectedCards.lastOption.foreach { index =>
-        players.update(picker.name, picker.copy(cards = picker.cards.updated(index, filledBlank)))
-      }
+      picker.selectedCards.lastOption.map { index =>
+        copy(players = players.updated(picker.name, picker.copy(cards = picker.cards.updated(index, filledBlank))))
+      }.getOrElse(this)
     } else if(picker.selectedCards.size < numBlanks) {
-      message.toIntOpt.foreach { cardNumber =>
+      message.toIntOpt.map { cardNumber =>
         val zeroedCardNumber = cardNumber - 1
         val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ zeroedCardNumber)
-        players.update(picker.name, updatedPicker)
+        val updatedGame = copy(players = players.updated(picker.name, updatedPicker))
         if(updatedPicker.cards(zeroedCardNumber).isBlank) {
           bot ! Messages.PrivMsg(picker.name, s"Send content to use for your blank card")
         } else if(updatedPicker.selectedCards.size < numBlanks) {
           val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
           bot ! Messages.PrivMsg(updatedPicker.name, message)
         }
-      }
-    }
+
+        updatedGame
+      }.getOrElse(this)
+    } else this
   }
 }
 
 object Game {
-  def apply(): Game = new Game(MutableMap.empty, "", BlackCard(""), MutableMap.empty, None)
+  def apply(): Game = new Game(Map.empty, "", BlackCard(""), Map.empty, None)
 }
 
