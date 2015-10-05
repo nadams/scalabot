@@ -54,7 +54,7 @@ class CardsPlugin extends Plugin with PluginHelper {
     }.map { channel =>
       games.get(channel).map { game =>
         if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
-          number.toIntOpt.foreach { cardNumber =>
+          number.toIntOpt.filter(x => game.playerAnswers.keySet.contains(x)).map { cardNumber =>
             game.pickAnswer(cardNumber, cards) match {
               case (winner, game) =>
                 games.update(channel, game)
@@ -70,7 +70,6 @@ class CardsPlugin extends Plugin with PluginHelper {
               games.update(channel, updatedGame)
 
               bot ! Messages.PrivMsg(channel, s"${updatedGame.czar} pick a card")
-              println(updatedGame)
               updatedGame.playerAnswers.keys.toSeq.sortBy(x => x).foreach { key =>
                 bot ! Messages.PrivMsg(channel, s"($key) ${updatedGame.playerAnswers(key).answerString}")
               }
