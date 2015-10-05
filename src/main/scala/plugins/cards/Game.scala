@@ -71,19 +71,25 @@ case class Game(
   }
 
   def pickAnswer(answer: Int, cards: Cards): (Player, Game) = {
-    val player = playerAnswers(answer)
-    val winner = player.copy(points = player.points + 1)
-    winner -> copy(
-      players = players.updated(winner.name, winner) ++ cardPickers.values.map { player =>
+    var winner = players(playerAnswers(answer).name)
+
+    val updatedGame = copy(
+      players = players.values.map { player =>
         player.name -> player.copy(
           selectedCards = Seq.empty,
           cards = player.backfillCards(cards.whiteCards, question.numBlanks)
         )
-      },
+      }.toMap,
       question = nextBlackCard(cards.blackCards),
       playerAnswers = Map.empty,
       czar = nextCzar().name,
       czarAnswer = None
+    )
+
+    winner = players(winner.name)
+
+    players(winner.name) -> updatedGame.copy(
+      players = players.updated(winner.name, winner.copy(points = winner.points + 1))
     )
   }
 
