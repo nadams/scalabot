@@ -14,6 +14,8 @@ case class Player(val name: String, val points: Int, val cards: Seq[WhiteCard], 
 
   def backfillCards(allCards: Seq[WhiteCard], numCards: Int): Seq[WhiteCard] =
     cards.diff(selectedCards.map(cards(_))) ++ Player.takeCards(allCards, numCards)
+
+  def lastAnswer: Option[WhiteCard] = selectedCards.lastOption.map(cards(_))
 }
 
 object Player {

@@ -21,8 +21,8 @@ class CardsPlugin extends Plugin with PluginHelper {
   override val messages = Map[String, MessageHandler]("cards" -> synchronized { cards })
   private val channelRegex = """(#.+)""".r
   private val games = MutableMap[String, Game]()
-  private val config = CardsConfig(Conf.config.getConfig("bot.cards").getString("cardsPath"))
-  private val cards = Cards(config.cardsPath)
+  private val config = CardsConfig(Conf.config.getConfig("bot.cards"))
+  private val cards = Cards(config.cardsPath, config.numBlanks)
 
   def cards(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.toLowerCase.split(" ") match {
@@ -38,8 +38,8 @@ class CardsPlugin extends Plugin with PluginHelper {
   def selectCards(from: MessageSource, to: String, message: String, bot: ActorRef, chan: String, number: String): Seq[String] = {
     getChannel(chan).map { channel =>
       games.get(channel).map { game =>
-        number.toIntOpt.foreach { cardNumber =>
-          if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
+        if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
+          number.toIntOpt.foreach { cardNumber =>
             game.playerAnswers.get(cardNumber).map { player =>
               val winner = player.copy(points = player.points + 1)
               game.players.update(winner.name, winner)
@@ -61,24 +61,34 @@ class CardsPlugin extends Plugin with PluginHelper {
               bot ! Messages.PrivMsg(channel, s"${player.name} wins")
               updatedGame.stepGame(channel, bot)
             }
-          } else {
-            game.cardPickers.get(from.source).map { picker =>
-              val numBlanks = game.question.numBlanks
-              if(picker.selectedCards.size < numBlanks) {
-                if(picker.validAnswer(cardNumber)) {
-                  val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ cardNumber - 1)
-                  game.players.update(picker.name, updatedPicker)
-                  if(updatedPicker.selectedCards.size < numBlanks) {
-                    val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
-                    bot ! Messages.PrivMsg(updatedPicker.name, message)
-                  }
+          }
+        } else {
+          println("picking stuff")
+          game.cardPickers.get(from.source).map { picker =>
+            val numBlanks = game.question.numBlanks
+            if(picker.lastAnswer.nonEmpty && picker.lastAnswer.forall(_.isBlank)) {
+              println("picking a blank card")
+              val filledBlank = picker.lastAnswer.map(_.copy(message)).getOrElse(WhiteCard.blankCard)
+              picker.selectedCards.lastOption.foreach { index =>
+                game.players.update(picker.name, picker.copy(cards = picker.cards.updated(index, filledBlank)))
+              }
+            } else if(picker.selectedCards.size < numBlanks) {
+              number.toIntOpt.foreach { cardNumber =>
+                val zeroedCardNumber = cardNumber - 1
+                val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ zeroedCardNumber)
+                game.players.update(picker.name, updatedPicker)
+                if(updatedPicker.cards(zeroedCardNumber).isBlank) {
+                  bot ! Messages.PrivMsg(picker.name, s"Send content to use for your blank card")
+                } else if(updatedPicker.selectedCards.size < numBlanks) {
+                  val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
+                  bot ! Messages.PrivMsg(updatedPicker.name, message)
                 }
               }
             }
+          }
 
-            if(game.allPlayersHavePlayed) {
-              game.selectAndPrintAnswers(channel, bot)
-            }
+          if(game.allPlayersHavePlayed) {
+            game.selectAndPrintAnswers(channel, bot)
           }
         }
       }

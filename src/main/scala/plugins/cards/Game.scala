@@ -51,9 +51,8 @@ case class Game(
     }
   }
 
-  def allPlayersHavePlayed(): Boolean = {
-    val numBlanks = question.numBlanks
-    cardPickers.forall { case (name, player) => player.selectedCards.length >= numBlanks }
+  def allPlayersHavePlayed(): Boolean = cardPickers.forall { case (name, player) =>
+    player.selectedCards.length >= question.numBlanks && player.selectedCards.map(player.cards(_)).forall(!_.isBlank)
   }
 
   def selectAndPrintAnswers(recipient: String, bot: ActorRef): Unit = {
