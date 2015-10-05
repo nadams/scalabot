@@ -7,6 +7,7 @@ import scala.util.Random
 import akka.actor.ActorRef
 
 import net.node3.scalabot.Messages
+import net.node3.scalabot.Implicits._
 
 object GameStates extends Enumeration {
   type State = Value
@@ -75,6 +76,47 @@ case class Game(
     printCzar(recipient, bot)
     sendQuestion(recipient, bot)
     sendCardsToPlayers(bot)
+  }
+
+  def pickAnswer(answer: Int, cards: Cards): (Player, Game) = {
+    val player = playerAnswers(answer)
+    val winner = player.copy(points = player.points + 1)
+    players.update(winner.name, winner)
+    cardPickers.foreach { case(name, player) =>
+      players.update(name, player.copy(
+        selectedCards = Seq.empty,
+        cards = player.backfillCards(cards.whiteCards, question.numBlanks)
+      ))
+    }
+
+    winner -> copy(
+      question = nextBlackCard(cards.blackCards),
+      playerAnswers = MutableMap.empty,
+      czar = nextCzar().name,
+      czarAnswer = None
+    )
+  }
+
+  def pickCard(picker: Player, message: String, bot: ActorRef): Unit = {
+    val numBlanks = question.numBlanks
+    if(picker.lastAnswer.nonEmpty && picker.lastAnswer.forall(_.isBlank)) {
+      val filledBlank = picker.lastAnswer.map(_.copy(message)).getOrElse(WhiteCard.blankCard)
+      picker.selectedCards.lastOption.foreach { index =>
+        players.update(picker.name, picker.copy(cards = picker.cards.updated(index, filledBlank)))
+      }
+    } else if(picker.selectedCards.size < numBlanks) {
+      message.toIntOpt.foreach { cardNumber =>
+        val zeroedCardNumber = cardNumber - 1
+        val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ zeroedCardNumber)
+        players.update(picker.name, updatedPicker)
+        if(updatedPicker.cards(zeroedCardNumber).isBlank) {
+          bot ! Messages.PrivMsg(picker.name, s"Send content to use for your blank card")
+        } else if(updatedPicker.selectedCards.size < numBlanks) {
+          val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
+          bot ! Messages.PrivMsg(updatedPicker.name, message)
+        }
+      }
+    }
   }
 }
 

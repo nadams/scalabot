@@ -49,57 +49,22 @@ class CardsPlugin extends Plugin with PluginHelper {
         game.players.contains(from.source)
       }
 
-      println(gamesWithPlayer)
-
       if(gamesWithPlayer.size > 1) None
       else gamesWithPlayer.keySet.headOption
     }.map { channel =>
       games.get(channel).map { game =>
         if(game.czar == to && game.cardPickers.get(from.source).isEmpty && game.allPlayersHavePlayed) {
           number.toIntOpt.foreach { cardNumber =>
-            game.playerAnswers.get(cardNumber).map { player =>
-              val winner = player.copy(points = player.points + 1)
-              game.players.update(winner.name, winner)
-              game.cardPickers.foreach { case(name, player) =>
-                game.players.update(name, player.copy(
-                  selectedCards = Seq.empty,
-                  cards = player.backfillCards(cards.whiteCards, game.question.numBlanks)
-                ))
-              }
-
-              val updatedGame = game.copy(
-                question = game.nextBlackCard(cards.blackCards),
-                playerAnswers = MutableMap.empty,
-                czar = game.nextCzar().name,
-                czarAnswer = None
-              )
-
-              games.update(channel, updatedGame)
-              bot ! Messages.PrivMsg(channel, s"${player.name} wins")
-              updatedGame.stepGame(channel, bot)
+            game.pickAnswer(cardNumber, cards) match {
+              case (winner, game) =>
+                games.update(channel, game)
+                bot ! Messages.PrivMsg(channel, s"${winner.name} wins")
+                game.stepGame(channel, bot)
             }
           }
         } else {
-          game.cardPickers.get(from.source).map { picker =>
-            val numBlanks = game.question.numBlanks
-            if(picker.lastAnswer.nonEmpty && picker.lastAnswer.forall(_.isBlank)) {
-              val filledBlank = picker.lastAnswer.map(_.copy(message)).getOrElse(WhiteCard.blankCard)
-              picker.selectedCards.lastOption.foreach { index =>
-                game.players.update(picker.name, picker.copy(cards = picker.cards.updated(index, filledBlank)))
-              }
-            } else if(picker.selectedCards.size < numBlanks) {
-              number.toIntOpt.foreach { cardNumber =>
-                val zeroedCardNumber = cardNumber - 1
-                val updatedPicker = picker.copy(selectedCards = picker.selectedCards :+ zeroedCardNumber)
-                game.players.update(picker.name, updatedPicker)
-                if(updatedPicker.cards(zeroedCardNumber).isBlank) {
-                  bot ! Messages.PrivMsg(picker.name, s"Send content to use for your blank card")
-                } else if(updatedPicker.selectedCards.size < numBlanks) {
-                  val message = s"Select ${numBlanks - updatedPicker.selectedCards.size} more card(s)"
-                  bot ! Messages.PrivMsg(updatedPicker.name, message)
-                }
-              }
-            }
+          game.cardPickers.get(from.source).foreach { picker =>
+            game.pickCard(picker, message, bot)
           }
 
           if(game.allPlayersHavePlayed) {
@@ -115,7 +80,7 @@ class CardsPlugin extends Plugin with PluginHelper {
       Seq("Must have more than 1 player to start the game.")
     } else {
       val updatedGame = game.copy(
-        czar = game.players.head._1,
+        czar = game.players.keys.head,
         question = game.nextBlackCard(cards.blackCards)
       )
 
