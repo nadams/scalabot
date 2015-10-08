@@ -18,7 +18,9 @@ libraryDependencies ++= Seq(
   "com.roundeights" %% "hasher" % "1.0.0",
   "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
   "org.json4s" %% "json4s-native" % "3.2.11",
-  "commons-lang" % "commons-lang" % "2.6"
+  "commons-lang" % "commons-lang" % "2.6",
+  "commons-validator" % "commons-validator" % "1.4.1",
+  "net.databinder.dispatch" %% "dispatch-core" % "0.11.2"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
