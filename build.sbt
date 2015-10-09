@@ -6,6 +6,8 @@ version := "0.0.1"
 
 scalaVersion := "2.11.6"
 
+lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
+
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.3.8",
