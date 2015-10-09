@@ -18,11 +18,11 @@ object Main {
     DateTimeZone.setDefault(DateTimeZone.UTC)
 
     try {
-      MigrationSystem.applyMigrations(Conf.migrations)
+      MigrationSystem.applyMigrations()
     } catch {
       case e: Throwable =>
         println("Could not apply migrations, shutting down")
-        println(e)
+        e.printStackTrace
         System.exit(1)
     }
 

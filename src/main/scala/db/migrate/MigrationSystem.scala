@@ -8,13 +8,18 @@ import anorm.SqlParser._
 import net.node3.scalabot.db.DataCore
 
 object MigrationSystem extends DataCore {
-  import java.io._
   import scala.collection.JavaConversions._
   import scala.io.Source
+
+  import java.io._
+  import java.nio.file.Paths
+
   import com.roundeights.hasher.Implicits._
 
-  def applyMigrations(migrationDirectory: String): Unit = {
-    val migrations = new File(migrationDirectory)
+  def applyMigrations(): Unit = {
+    val migrationPath = "/db/migrations"
+    val resources = Source.fromInputStream(getClass.getResourceAsStream(migrationPath))
+    val migrations = resources.getLines.map(x => s"$migrationPath/$x").toSeq
 
     if(!migrationTableExists()) {
       createMigrationTable()
@@ -24,7 +29,7 @@ object MigrationSystem extends DataCore {
     }
   }
 
-  def updateMigrations(dir: File): Unit = {
+  def updateMigrations(files: Seq[String]): Unit = {
     val records = SQL"""
       SELECT
         MigrationId,
@@ -36,10 +41,10 @@ object MigrationSystem extends DataCore {
     """.as(int("MigrationId") ~ str("Filename") ~ str("SHA256") ~ str("Content") map(flatten) *)
     .map(MigrationRecord(_)).map { x => x.filename -> x } toMap
 
-    val files = filterToSql(dir).map { x => x.getName -> x } toMap
-    val unappliedMigrations = files.keySet.diff(records.keySet)
+    val filteredFiles = filterToSql(files).map(x => getFilename(x) -> x).toMap
+    val unappliedMigrations = filteredFiles.keySet.diff(records.keySet)
 
-    unappliedMigrations.toSeq.sortBy(x => x).foreach(x => applyMigration(files(x)))
+    unappliedMigrations.toSeq.sortBy(x => x).foreach(x => applyMigration(filteredFiles(x)))
   }
 
   def migrationTableExists(): Boolean = SQL(
@@ -62,24 +67,28 @@ object MigrationSystem extends DataCore {
     """
   ).execute
 
-  def runAllMigrations(dir: File): Unit = filterToSql(dir).foreach(applyMigration(_))
+  def runAllMigrations(files: Seq[String]): Unit = filterToSql(files).foreach(applyMigration(_))
 
-  def applyMigration(migration: File): Unit = {
-    val m = Migration(migration.getPath)
+  def applyMigration(file: String): Unit = {
+    val m = Migration(file)
     m.up.split("(?<!;);(?!;)").map(_.trim.replace(";;", ";")).filter(_ != "").foreach(SQL(_).execute())
 
-    val fileContent = Source.fromFile(migration).mkString
+    val fileContent = Source.fromInputStream(getClass.getResourceAsStream(file)).mkString
     val fileSum = fileContent.sha256.hex
+    val filename = getFilename(file)
+
     SQL"""
       INSERT INTO Migrations
       VALUES (
         NULL,
-        ${migration.getName},
+        ${filename},
         $fileContent,
         $fileSum
       )
     """.execute
   }
 
-  def filterToSql(dir: File): Seq[File] = dir.listFiles.filter(_.getName.endsWith(".sql")).toSeq
+  def filterToSql(files: Seq[String]): Seq[String] = files.filter(_.endsWith(".sql")).toSeq
+
+  def getFilename(file: String): String = Paths.get(file).getFileName.toString
 }
