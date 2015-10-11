@@ -36,7 +36,7 @@ class UserRepositoryImpl extends UserRepository with DataCore {
 
   def insertUser(name: String, password: String, hostname: String): Option[User] = {
     val id = SQL"""
-      INSERT INTO User(Name, Password, DateCreated, Hostname, LastIdentified)
+      INSERT INTO User(Name, Password, DateCreated, Hostname, Permissions, LastIdentified)
       VALUES ($name, $password, ${DateTime.now}, $hostname, 0, ${new DateTime(new Date(0), DateTimeZone.UTC)})
     """.executeInsert(scalar[Int] single)
 

@@ -4,6 +4,9 @@ import scala.util.Random
 
 import com.typesafe.config.Config
 import org.apache.commons.lang.StringEscapeUtils
+import org.json4s._
+import org.json4s.native.JsonMethods._
+
 
 case class WhiteCard(val content: String) {
   def isBlank = content == WhiteCard.blankCard.content
@@ -30,9 +33,6 @@ case class Cards(val blackCards: Seq[BlackCard], val whiteCards: Seq[WhiteCard])
 object Cards {
   def apply(): Cards = Cards(Seq.empty, Seq.empty)
   def apply(path: String, numBlanks: Int): Cards = {
-    import org.json4s._
-    import org.json4s.native.JsonMethods._
-
     implicit val formats = DefaultFormats
 
     def mergeCards(obj: JValue) = ((obj \ "classic") merge (obj \ "custom"))
