@@ -3,9 +3,9 @@ package net.node3.scalabot.plugins.weather
 import com.github.nscala_time.time.Imports._
 import org.ocpsoft.prettytime._
 
-case class CurrentWeather(
+case class Weather(
   val coord: Coordinate,
-  val weather: Weather,
+  val weather: Seq[WeatherItem],
   val base: String,
   val main: Conditions,
   val wind: Wind,
@@ -18,16 +18,21 @@ case class CurrentWeather(
 ) {
   private val prettyTime = new PrettyTime()
 
+  val separator = " || "
+
+  lazy val periodString = prettyTime.format(new DateTime(dt * 1000L).date)
+  lazy val dayOfWeek = new DateTime(dt * 1000L).dayOfWeek.name
+  lazy val updatedString = s"Updated: ${periodString}"
+  lazy val locationString = s"$name"
+
   override def toString =
     Seq(
-      s"$name (${coord.toString})",
-      s"Updated: ${timePrettyPrint}",
-      s"Conditions: ${weather.main} (${weather.description})",
-      s"Temperature: ${main.tempF}°F (${main.tempC}°C)",
-      s"High/Low: ${main.maxTempF}°F / ${main.minTempF}°F (${main.maxTempC}°C / ${main.minTempC}°C)",
-      s"Humidity: ${main.humidity}%",
-      s"Wind: ${wind.deg.toDirection} at ${wind.speed.toMph} Mph (${wind.speed} Km/h)"
-    ).mkString(" || ")
-
-  def timePrettyPrint(): String = prettyTime.format(new DateTime(dt * 1000L).date)
+      locationString,
+      updatedString,
+      weather.foldLeft("")((acc, item) => acc + item.toString),
+      main.temperatureString(),
+      main.highLowString(),
+      main.humidityString,
+      wind.toString
+    ).mkString(separator)
 }
