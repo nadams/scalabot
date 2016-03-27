@@ -17,20 +17,21 @@ class UrlTitlePlugin extends Plugin {
   val timeout = 15.seconds
 
   private val titlePattern = """(?i)<title>(.+)<\/title>""".r
+  private val urlRegex = """(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})""".r
 
   override def handlesMessage(from: MessageSource, to: String, message: String): Boolean = true
 
   def apply(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
-    if (message.startsWith("https://") || message.startsWith("http://")) {
-      val response = Http.configure(_.setFollowRedirects(true))(url(message) > as.Response(handleResponse)).map(r => r).recover {
+    urlRegex.findFirstIn(message).map { m =>
+      val response = Http.configure(_.setFollowRedirects(true))(url(m) > as.Response(handleResponse)).map(r => r).recover {
         case _: TimeoutException => Some(s"Timeout after ${timeout.toString}")
         case _: Throwable => Some(s"Couldn't connect, try again later...")
       }
 
       val title = Await.result(response, timeout).getOrElse("No title found")
 
-      Seq(s"$to: URL Title for $message - $title")
-    } else Seq.empty
+      Seq(s"$to: URL Title for $m - $title")
+    }.getOrElse(Seq.empty)
 
   def handleResponse(r: Response): Option[String] =
     titlePattern.findFirstMatchIn(r.getResponseBody)map(_.group(1))
