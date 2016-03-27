@@ -10,7 +10,7 @@ object Migration {
   def apply() : Migration = Migration("", "")
 
   def apply(filepath: String) : Migration = {
-    val lines = Source.fromInputStream(getClass.getResourceAsStream(filepath)).mkString
+    val lines = Source.fromFile(filepath).mkString
     val sections = sectionRegex.split(lines)
     sections.flatMap { section =>
       val sectionTypePos = section.indexOf('\n')

@@ -17,9 +17,8 @@ object MigrationSystem extends DataCore {
   import com.roundeights.hasher.Implicits._
 
   def applyMigrations(): Unit = {
-    val migrationPath = "/db/migrations"
-    val resources = Source.fromInputStream(getClass.getResourceAsStream(migrationPath))
-    val migrations = resources.getLines.map(x => s"$migrationPath/$x").toSeq
+    val migrationPath = System.getProperty("db.dir") + "/migrations"
+    val migrations = filterToSql(new File(migrationPath).list().map(migrationPath + "/" + _)).sortBy(x => x)
 
     if(!migrationTableExists()) {
       createMigrationTable()
@@ -73,7 +72,7 @@ object MigrationSystem extends DataCore {
     val m = Migration(file)
     m.up.split("(?<!;);(?!;)").map(_.trim.replace(";;", ";")).filter(_ != "").foreach(SQL(_).execute())
 
-    val fileContent = Source.fromInputStream(getClass.getResourceAsStream(file)).mkString
+    val fileContent = Source.fromFile(file).mkString
     val fileSum = fileContent.sha256.hex
     val filename = getFilename(file)
 

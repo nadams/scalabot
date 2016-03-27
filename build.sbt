@@ -4,7 +4,7 @@ organization := "net.node3"
 
 version := "0.0.1"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.8"
 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
@@ -39,3 +39,7 @@ resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/release
 resolvers += "RoundEights" at "http://maven.spikemark.net/roundeights"
 
 initialCommands := "import net.node3.scalabot._"
+
+bashScriptExtraDefines += """addJava "-Dconfig.file=${app_home}/../conf/application.conf""""
+
+bashScriptExtraDefines += """addJava "-Ddb.dir=${app_home}/../db""""
