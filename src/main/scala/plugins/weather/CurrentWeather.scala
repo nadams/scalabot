@@ -3,6 +3,8 @@ package net.node3.scalabot.plugins.weather
 import com.github.nscala_time.time.Imports._
 import org.ocpsoft.prettytime._
 
+import net.node3.scalabot.plugins.WeatherPlugin
+
 case class Weather(
   val coord: Coordinate,
   val weather: Seq[WeatherItem],
@@ -18,8 +20,7 @@ case class Weather(
 ) {
   private val prettyTime = new PrettyTime()
 
-  val separator = " || "
-
+  lazy val separator = WeatherPlugin.config.separator
   lazy val periodString = prettyTime.format(new DateTime(dt * 1000L).date)
   lazy val dayOfWeek = new DateTime(dt * 1000L).dayOfWeek.name
   lazy val updatedString = s"Updated: ${periodString}"
@@ -29,7 +30,7 @@ case class Weather(
     Seq(
       locationString,
       updatedString,
-      weather.foldLeft("")((acc, item) => acc + item.toString),
+      "Conditions:" + weather.foldLeft(" ")((acc, item) => acc + item.toString),
       main.temperatureString(),
       main.highLowString(),
       main.humidityString,

@@ -6,6 +6,6 @@ case class WeatherItem(
   val description: String,
   val icon: String
 ) {
-  override def toString = s"Conditions: ${main} ($description)"
+  override def toString = s"${main} ($description)"
 }
 

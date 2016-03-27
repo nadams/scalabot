@@ -30,34 +30,35 @@ class WeatherPlugin extends Plugin with PluginHelper {
 
   def forecast(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     message.split(" ") match {
-      case Array(_, zip, _*) =>
-        val messageResponse = Http(url(WeatherPlugin.forecastForZip(zip)) OK as.String).map { x =>
-          Some(parse(x).transformField(Transforms.weather).extract[Forecast].toString)
-        }.recover {
-          case e: Throwable => {
-            e.printStackTrace
-            None
-          }
+      case Array(_, m, _*) =>
+        m match {
+          case WeatherPlugin.usZipRegex(zip, _*) => call(WeatherPlugin.forecastForZip(s"$zip"))(mapForecast)
+          case WeatherPlugin.postalCodeRegex(code, _*) => call(WeatherPlugin.forecastForZip(s"$code"))(mapForecast)
+          case _ => call(WeatherPlugin.forecastForCity(m))(mapForecast)
         }
-
-        Seq(Await.result(messageResponse, WeatherPlugin.timeout).getOrElse("Operation timed out"))
       case _ => Seq.empty
     }
 
   def currentWeather(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
+
     message.split(" ") match {
       case Array(_, m, _*) =>
         m match {
-          case WeatherPlugin.usZipRegex(zip, _*) => currentWeatherForZip(s"$zip,us")
-          case _ => Seq.empty
+          case WeatherPlugin.usZipRegex(zip, _*) => call(WeatherPlugin.currentWeatherForZip(s"$zip"))(mapWeather)
+          case WeatherPlugin.postalCodeRegex(code, _*) => call(WeatherPlugin.currentWeatherForZip(s"$code"))(mapWeather)
+          case _ => call(WeatherPlugin.currentWeatherForCity(m))(mapWeather)
         }
       case _ => Seq.empty
     }
 
-  private def currentWeatherForZip(zip: String): Seq[String] = {
-    val messageResponse = Http(url(WeatherPlugin.currentWeatherForZip(zip)) OK as.String).map { x =>
-      Some(parse(x).transformField(Transforms.weather).extract[Weather].toString)
-    }.recover {
+  def mapWeather(body: String) =
+    Some(parse(body).transformField(Transforms.weather).extract[Weather].toString)
+
+  def mapForecast(body: String) =
+    Some(parse(body).transformField(Transforms.weather).extract[Forecast].toString)
+
+  private def call(endpoint: String)(action: String => Option[String]): Seq[String] = {
+    val messageResponse = Http(url(endpoint) OK as.String).map(action).recover {
       case e: Throwable => {
         e.printStackTrace
         None
@@ -73,12 +74,15 @@ object WeatherPlugin {
   val apiKey = config.apiKey
   val timeout = config.timeout.seconds
   val api = "http://api.openweathermap.org/data/2.5"
-  val usZipRegex = """(\d{5})(-\d{4})?""".r
+  val usZipRegex = """(\d{5})(-\d{4})?()""".r
+  val postalCodeRegex = """[a-zA-Z]\d[a-z-A-Z]\s?\d[a-zA-Z]\d""".r
 
   val currentWeatherEndpoint = s"$api/weather"
   val forecastEndpoint = s"$api/forecast"
 
-  def currentWeatherForZip(zip: String) = s"$currentWeatherEndpoint?zip=$zip&APPID=$apiKey"
-  def forecastForZip(zip: String) = s"$forecastEndpoint?zip=$zip&APPID=$apiKey"
+  def currentWeatherForZip(zip: String, country: String = "us") = s"$currentWeatherEndpoint?zip=$zip,$country&APPID=$apiKey"
+  def forecastForZip(zip: String, country: String = "us") = s"$forecastEndpoint?zip=$zip,$country&APPID=$apiKey"
+  def currentWeatherForCity(q: String) = s"$currentWeatherEndpoint?q=$q&APPID=$apiKey"
+  def forecastForCity(q: String) = s"$forecastEndpoint?q=$q&APPID=$apiKey"
 }
 
