@@ -30,7 +30,7 @@ case class Weather(
     Seq(
       locationString,
       updatedString,
-      "Conditions:" + weather.foldLeft(" ")((acc, item) => acc + item.toString),
+      "Conditions: " + weather.headOption.map(_.toString).getOrElse("No Conditions"),
       main.temperatureString(),
       main.highLowString(),
       main.humidityString,
