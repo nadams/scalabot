@@ -10,9 +10,9 @@ lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.4" % "test",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.8",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.3",
   "org.parboiled" %% "parboiled" % "2.1.0",
-  "com.typesafe" % "config" % "1.2.1",
+  "com.typesafe" % "config" % "1.3.0",
   "com.github.kxbmap" %% "configs" % "0.2.3",
   "com.typesafe.play" %% "anorm" % "2.4.0-M2",
   "org.xerial" % "sqlite-jdbc" % "3.7.2",
