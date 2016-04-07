@@ -16,7 +16,7 @@ import net.node3.scalabot.data._
 class UrlTitlePlugin extends Plugin {
   val timeout = 15.seconds
 
-  private val titlePattern = """(?i)<title>(.+)<\/title>""".r
+  private val titlePattern = """(?is)<title>(.+)<\/title>""".r
   private val urlRegex = """(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})""".r
 
   override def handlesMessage(from: MessageSource, to: String, message: String): Boolean = true
@@ -34,5 +34,5 @@ class UrlTitlePlugin extends Plugin {
     }.getOrElse(Seq.empty)
 
   def handleResponse(r: Response): Option[String] =
-    titlePattern.findFirstMatchIn(r.getResponseBody)map(_.group(1))
+    titlePattern.findFirstMatchIn(r.getResponseBody)map(_.group(1).trim)
 }
