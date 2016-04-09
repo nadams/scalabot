@@ -22,7 +22,10 @@ libraryDependencies ++= Seq(
   "commons-validator" % "commons-validator" % "1.4.1",
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.2",
   "org.json4s" %% "json4s-native" % "3.3.0",
-  "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final"
+  "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+  "org.slf4j" % "slf4j-simple" % "1.7.21",
+  "net.ruippeixotog" %% "scala-scraper" % "1.0.0"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
