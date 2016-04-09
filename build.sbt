@@ -9,7 +9,6 @@ scalaVersion := "2.11.8"
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.4.3",
   "org.parboiled" %% "parboiled" % "2.1.0",
   "com.typesafe" % "config" % "1.3.0",
