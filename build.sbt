@@ -42,3 +42,4 @@ initialCommands := "import net.node3.scalabot._"
 bashScriptExtraDefines += """addJava "-Dconfig.file=${app_home}/../conf/application.conf""""
 
 bashScriptExtraDefines += """addJava "-Ddb.dir=${app_home}/../db""""
+
