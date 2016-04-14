@@ -1,0 +1,3 @@
+test:
+  post:
+    - mv target/universal/*.tgz $CIRCLE_ARTIFACTS
