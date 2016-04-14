@@ -1,3 +1,4 @@
 test:
   post:
+    - sbt universal:packageZipTarball
     - mv target/universal/*.tgz $CIRCLE_ARTIFACTS
