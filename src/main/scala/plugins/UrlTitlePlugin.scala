@@ -51,11 +51,16 @@ class UrlTitlePlugin extends Plugin with LazyLogging {
   def apply(from: MessageSource, to: String, message: String, bot: ActorRef): Seq[String] =
     if(lastTitle.plusSeconds(throttle).isBeforeNow)
       message match {
-        case urlRegex(m) => urlTitle(to, m)
-        case magnetRegex(m) => magnetTitle(m)
+        case urlRegex(m) => throttle(m) { m => urlTitle(to, m) }
+        case magnetRegex(m) => throttle(m)(magnetTitle)
         case _ => Seq.empty
       }
     else Seq.empty
+
+  private def throttle(m: String)(x: String => Seq[String]): Seq[String] = {
+    lastTitle = DateTime.now
+    x(m)
+  }
 
   private def magnetTitle(m: String): Seq[String] = {
     m.replaceFirst("""^magnet:\?""", "")
@@ -75,8 +80,6 @@ class UrlTitlePlugin extends Plugin with LazyLogging {
 
     if(isValidRequest)
       Await.result(client(url(m) > as.Response(getTitle)).recover(defaultRecover), timeout).map { x =>
-        lastTitle = DateTime.now
-
         Seq(s"$to: URL Title for $m - $x")
       }.getOrElse(Seq.empty)
     else Seq.empty
