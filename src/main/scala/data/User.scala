@@ -22,21 +22,21 @@ trait UserRepository {
 class UserRepositoryImpl extends UserRepository with DataCore {
   def updateUser(id: Int, user: User): Option[User] =
     if(SQL"""
-      UPDATE User
+      UPDATE user
       SET
-        Name = ${user.name},
-        Password = ${user.password},
-        DateCreated = ${user.dateCreated},
-        Hostname = ${user.hostname},
-        Permissions = ${user.permissions},
-        LastIdentified = ${user.lastIdentified}
-      WHERE UserId = $id
+        name = ${user.name},
+        password = ${user.password},
+        date_created = ${user.dateCreated},
+        hostname = ${user.hostname},
+        permissions = ${user.permissions},
+        last_identified = ${user.lastIdentified}
+      WHERE id = $id
       """.executeUpdate > 0) Some(user)
     else None
 
   def insertUser(name: String, password: String, hostname: String): Option[User] = {
     val id = SQL"""
-      INSERT INTO User(Name, Password, DateCreated, Hostname, Permissions, LastIdentified)
+      INSERT INTO user(name, password, date_created, hostname, permissions, last_identified)
       VALUES ($name, $password, ${DateTime.now}, $hostname, 0, ${new DateTime(new Date(0), DateTimeZone.UTC)})
     """.executeInsert(scalar[Int] single)
 
@@ -48,34 +48,34 @@ class UserRepositoryImpl extends UserRepository with DataCore {
   def getUserById(id: Int): Option[User] =
     SQL"""
       SELECT
-        UserId,
-        Name,
-        Password,
-        DateCreated,
-        Hostname,
-        Permissions,
-        LastIdentified
-      FROM User
-      WHERE UserId = $id
+        id AS id,
+        name AS name,
+        password AS password,
+        date_created AS date_created,
+        hostname,
+        permissions,
+        last_identified AS last_identified
+      FROM user
+      WHERE id = $id
     """.as(User.singleRowParser singleOpt).map(User(_))
 
   def getUser(name: String): Option[User] =
     SQL"""
       SELECT
-        UserId,
-        Name,
-        Password,
-        DateCreated,
-        Hostname,
-        Permissions,
-        LastIdentified
-      FROM User
-      WHERE Name = $name
+        id AS id,
+        name AS name,
+        password AS password,
+        date_created AS date_created,
+        hostname,
+        permissions,
+        last_identified AS last_identified
+      FROM user
+      WHERE name = $name
     """.as(User.singleRowParser singleOpt).map(User(_))
 
   def hasUsers(): Boolean =
     SQL"""
-      SELECT COUNT(*) FROM User
+      SELECT COUNT(*) FROM user
     """.as(scalar[Int].single) > 0
 }
 
@@ -83,7 +83,7 @@ case class User(userId: Int, name: String, password: String, dateCreated: DateTi
 
 object User {
   lazy val singleRowParser =
-    int("UserId") ~ str("Name") ~ str("Password") ~ datetime("DateCreated") ~ str("Hostname") ~ int("Permissions") ~ datetime("LastIdentified") map(flatten)
+    int("id") ~ str("name") ~ str("password") ~ datetime("date_created") ~ str("hostname") ~ int("permissions") ~ datetime("last_identified") map(flatten)
 
   lazy val multiRowParser = singleRowParser *
 

@@ -1,12 +1,21 @@
+import com.typesafe.sbt.packager.docker._
+
 name := "Scala Bot"
-
 organization := "net.node3"
-
 version := "1.0.1"
-
 scalaVersion := "2.11.8"
+scalacOptions := Seq(
+  "-unchecked",
+  "-deprecation",
+  "-encoding",
+  "utf8",
+  "-feature",
+  "-target:jvm-1.8"
+)
 
-lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
+scalacOptions in Test ++= Seq("-Yrangepos")
+
+lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging).enablePlugins(DockerPlugin).enablePlugins(AshScriptPlugin)
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.4.3",
@@ -14,7 +23,6 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.0",
   "com.github.kxbmap" %% "configs" % "0.2.3",
   "com.typesafe.play" %% "anorm" % "2.4.0-M2",
-  "org.xerial" % "sqlite-jdbc" % "3.7.2",
   "com.github.nscala-time" %% "nscala-time" % "2.2.0",
   "com.github.t3hnar" %% "scala-bcrypt" % "2.4",
   "commons-lang" % "commons-lang" % "2.6",
@@ -24,22 +32,22 @@ libraryDependencies ++= Seq(
   "org.ocpsoft.prettytime" % "prettytime" % "3.2.7.Final",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
   "org.slf4j" % "slf4j-simple" % "1.7.21",
-  "net.ruippeixotog" %% "scala-scraper" % "1.0.0"
+  "net.ruippeixotog" %% "scala-scraper" % "1.0.0",
+  "org.postgresql" % "postgresql" % "42.0.0"
 )
 
-scalacOptions in Test ++= Seq("-Yrangepos")
-
-scalacOptions += "-deprecation"
-
-scalacOptions += "-feature"
+dockerBaseImage := "openjdk:8-jre-alpine"
+maintainer in Docker := "Nick Adams"
+version in Docker := version.value
+packageName in Docker := "docker.node-3.net:4567/nadams/scala-bot"
 
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
-
-resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers ++= Seq(
+  "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
+  "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases",
+  "NODE-3.net Snapshots" at "https://maven.node-3.net/repository/node-3-snapshots",
+  "NODE-3.net Releases" at "https://maven.node-3.net/repository/node-3-releases"
+)
 
 initialCommands := "import net.node3.scalabot._"
-
-bashScriptExtraDefines += """addJava "-Dconfig.file=${app_home}/../conf/application.conf""""
-
-bashScriptExtraDefines += """addJava "-Ddb.dir=${app_home}/../db""""
-
+bashScriptExtraDefines += """opts="$opts -Dconfig.file=${app_home}/../conf/application.conf""""

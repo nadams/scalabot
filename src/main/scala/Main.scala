@@ -18,6 +18,7 @@ object Main {
     DateTimeZone.setDefault(DateTimeZone.UTC)
 
     try {
+  println(Conf.dbDriver)
       MigrationSystem.applyMigrations()
     } catch {
       case e: Throwable =>

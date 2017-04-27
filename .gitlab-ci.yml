@@ -1,0 +1,46 @@
+image: maven.deneb.local:4567/sbt:latest
+before_script:
+  - export SBT_OPTS="-Dsbt.ivy.home=cache"
+  - mkdir -p "$HOME/.sbt"
+  - 'echo "[repositories]" > "$HOME/.sbt/repositories"'
+  - 'echo "  local" >> "$HOME/.sbt/repositories"'
+  - 'echo "  ivy-proxy-releases: http://maven.deneb.local:8080/repository/sbt-ivy-releases/, [organization]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext]" >> "$HOME/.sbt/repositories"'
+  - 'echo "  my-maven-proxy-releases: http://maven.deneb.local:8080/repository/maven-central/" >> "$HOME/.sbt/repositories"'
+
+stages:
+  - test
+  - package
+  - deploy
+
+test:
+  stage: test
+  script:
+    - sbt clean compile coverage test coverageReport
+  artifacts:
+    paths:
+      - target/scala-2.11/scoverage-report
+
+qa_package:
+  stage: package
+  script:
+    - export SBT_OPTS="-Dsbt.ivy.home=cache"
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN docker.node-3.net:4567
+    - sbt universal:packageZipTarball
+    - mkdir artifacts
+    - cp target/universal/topaz-api-*.tgz artifacts
+    - echo '; set version in Docker := "qa"; coverageOff ; docker:publish' | sbt
+  artifacts:
+    paths:
+      - artifacts/
+  only:
+    - develop
+
+qa_deploy:
+  stage: deploy
+  script:
+    - "curl -d '' -H 'Content-Type: application/json' http://marathon1/v2/apps/poprocks/restart"
+  only:
+    - develop
+cache:
+  paths:
+    - cache/

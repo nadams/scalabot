@@ -1,15 +1,13 @@
 package net.node3.scalabot.db
 
+import java.nio.file._
 import java.sql._
 
 import net.node3.scalabot.config.Conf
 
 trait DataCore {
-  Class.forName("org.sqlite.JDBC")
+  Class.forName("org.postgresql.Driver")
 
-  val host = s"jdbc:sqlite:${Conf.dbFile}"
-
-  implicit val connection: Connection = DriverManager.getConnection(host)
-  connection.nativeSQL("PRAGMA foreign_keys = ON;")
+  implicit val connection: Connection = DriverManager.getConnection(Conf.dbURL)
 }
 

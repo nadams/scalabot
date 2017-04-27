@@ -31,13 +31,13 @@ object MigrationSystem extends DataCore {
   def updateMigrations(files: Seq[String]): Unit = {
     val records = SQL"""
       SELECT
-        MigrationId,
-        Filename,
-        SHA256,
-        Content
-      FROM Migrations
-      ORDER BY Filename DESC
-    """.as(int("MigrationId") ~ str("Filename") ~ str("SHA256") ~ str("Content") map(flatten) *)
+        id AS id,
+        filename AS filename,
+        sha256 AS sha256,
+        content AS content
+      FROM sql_migration
+      ORDER BY filename DESC
+    """.as(int("id") ~ str("filename") ~ str("sha256") ~ str("content") map(flatten) *)
     .map(MigrationRecord(_)).map { x => x.filename -> x } toMap
 
     val filteredFiles = filterToSql(files).map(x => getFilename(x) -> x).toMap
@@ -48,20 +48,22 @@ object MigrationSystem extends DataCore {
 
   def migrationTableExists(): Boolean = SQL(
     """
-      SELECT name
-      FROM sqlite_master
-      WHERE type = 'table'
-        AND name = 'Migrations'
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_name = 'sql_migration'
     """
   ).as(scalar[String].singleOpt).isDefined
 
   def createMigrationTable(): Unit = SQL(
     """
-      CREATE TABLE Migrations (
-        MigrationId INTEGER PRIMARY KEY AUTOINCREMENT,
-        Filename TEXT NOT NULL UNIQUE,
-        SHA256 TEXT NOT NULL,
-        Content TEXT NOT NULL
+      CREATE TABLE sql_migration (
+        id SERIAL NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        sha256 TEXT NOT NULL,
+        content TEXT NOT NULL,
+
+        CONSTRAINT pk_sql_migration PRIMARY KEY (id),
+        CONSTRAINT uq_sql_migration UNIQUE (filename)
       )
     """
   ).execute
@@ -77,9 +79,8 @@ object MigrationSystem extends DataCore {
     val filename = getFilename(file)
 
     SQL"""
-      INSERT INTO Migrations
+      INSERT INTO sql_migration (filename, sha256, content)
       VALUES (
-        NULL,
         ${filename},
         $fileContent,
         $fileSum
