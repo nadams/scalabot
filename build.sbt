@@ -50,4 +50,4 @@ resolvers ++= Seq(
 )
 
 initialCommands := "import net.node3.scalabot._"
-bashScriptExtraDefines += """opts="$opts -Dconfig.file=${app_home}/../conf/application.conf""""
+bashScriptExtraDefines += """opts="$opts -Dconfig.file=${app_home}/../conf/application.conf -Dbot.db.migrations=${app_home}/../db""""
